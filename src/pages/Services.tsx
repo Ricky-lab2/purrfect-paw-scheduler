@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { ServiceCard } from "@/components/ServiceCard";
-import { Stethoscope, Scissors, Syringe, ShoppingBag, HeartPulse, Microscope, Flask, Brain, Pill, Cat, Dog, Rabbit } from "lucide-react";
+import { Stethoscope, Scissors, Syringe, ShoppingBag, HeartPulse, Microscope, Beaker, Brain, Pill, Cat, Dog, Rabbit } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface PricingItem {
@@ -264,7 +263,7 @@ const Services = () => {
           <ServiceCard
             title="Laboratory Testing"
             description="In-house and reference lab services for fast and accurate test results."
-            icon={Flask}
+            icon={Beaker}
             iconClassName="from-pet-blue-dark to-pet-blue"
           />
           
