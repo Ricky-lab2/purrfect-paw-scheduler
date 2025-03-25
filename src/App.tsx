@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { PetChatbot } from "@/components/PetChatbot";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));

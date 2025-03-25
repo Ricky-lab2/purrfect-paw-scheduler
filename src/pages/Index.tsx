@@ -2,6 +2,7 @@
 import { HeroSection } from "@/components/HeroSection";
 import { ServiceCard } from "@/components/ServiceCard";
 import { NotificationPreview } from "@/components/NotificationPreview";
+import { PetChatbot } from "@/components/PetChatbot";
 import { Link } from "react-router-dom";
 import { Stethoscope, Scissors, Syringe, ShoppingBag, ChevronRight, Clock, Calendar, Award } from "lucide-react";
 
