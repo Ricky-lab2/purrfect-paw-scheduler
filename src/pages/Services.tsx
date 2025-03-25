@@ -1,6 +1,7 @@
+
 import { useState } from "react";
 import { ServiceCard } from "@/components/ServiceCard";
-import { Stethoscope, Scissors, Syringe, ShoppingBag, HeartPulse, Microscope, Beaker, Brain, Pill, Cat, Dog, Rabbit } from "lucide-react";
+import { Stethoscope, Scissors, Syringe, ShoppingBag, HeartPulse, Microscope, Beaker, Brain, Pill, Cat, Dog, Rabbit, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface PricingItem {
@@ -24,22 +25,22 @@ const Services = () => {
         items: [
           {
             service: "General Check-up",
-            price: "$50 - $75",
+            price: "₱2,500 - ₱3,750",
             description: "Comprehensive physical examination"
           },
           {
             service: "New Patient Consultation",
-            price: "$75 - $100",
+            price: "₱3,750 - ₱5,000",
             description: "Initial visit with health assessment"
           },
           {
             service: "Follow-up Appointment",
-            price: "$40 - $60",
+            price: "₱2,000 - ₱3,000",
             description: "Progress evaluation visit"
           },
           {
             service: "Emergency Consultation",
-            price: "$100 - $150",
+            price: "₱5,000 - ₱7,500",
             description: "Urgent care examination"
           }
         ]
@@ -49,17 +50,17 @@ const Services = () => {
         items: [
           {
             service: "Annual Wellness Package",
-            price: "$150 - $250",
+            price: "₱7,500 - ₱12,500",
             description: "Complete yearly check-up with basic tests"
           },
           {
             service: "Senior Pet Care Package",
-            price: "$200 - $300",
+            price: "₱10,000 - ₱15,000",
             description: "Enhanced check-up for older pets"
           },
           {
             service: "Dental Check-up",
-            price: "$60 - $90",
+            price: "₱3,000 - ₱4,500",
             description: "Oral examination and assessment"
           }
         ]
@@ -71,17 +72,17 @@ const Services = () => {
         items: [
           {
             service: "DHPP/FVRCP (Dog/Cat)",
-            price: "$25 - $45",
+            price: "₱1,250 - ₱2,250",
             description: "Essential protection against common diseases"
           },
           {
             service: "Rabies Vaccine",
-            price: "$20 - $30",
+            price: "₱1,000 - ₱1,500",
             description: "Required by law in most areas"
           },
           {
             service: "Bordetella (Kennel Cough)",
-            price: "$25 - $40",
+            price: "₱1,250 - ₱2,000",
             description: "Protection for social/boarding dogs"
           }
         ]
@@ -91,17 +92,17 @@ const Services = () => {
         items: [
           {
             service: "Leptospirosis",
-            price: "$25 - $35",
+            price: "₱1,250 - ₱1,750",
             description: "For dogs with outdoor exposure"
           },
           {
             service: "Lyme Disease",
-            price: "$35 - $45",
+            price: "₱1,750 - ₱2,250",
             description: "For dogs in tick-prevalent areas"
           },
           {
             service: "Feline Leukemia",
-            price: "$30 - $40",
+            price: "₱1,500 - ₱2,000",
             description: "For cats with outdoor access"
           }
         ]
@@ -113,22 +114,22 @@ const Services = () => {
         items: [
           {
             service: "Bath & Brush (Small)",
-            price: "$30 - $45",
+            price: "₱1,500 - ₱2,250",
             description: "For dogs under 25lbs"
           },
           {
             service: "Bath & Brush (Medium)",
-            price: "$45 - $60",
+            price: "₱2,250 - ₱3,000",
             description: "For dogs 25-50lbs"
           },
           {
             service: "Bath & Brush (Large)",
-            price: "$60 - $80",
+            price: "₱3,000 - ₱4,000",
             description: "For dogs over 50lbs"
           },
           {
             service: "Cat Grooming",
-            price: "$50 - $70",
+            price: "₱2,500 - ₱3,500",
             description: "Specialized feline grooming service"
           }
         ]
@@ -138,17 +139,17 @@ const Services = () => {
         items: [
           {
             service: "Full Groom (Small)",
-            price: "$60 - $80",
+            price: "₱3,000 - ₱4,000",
             description: "Bath, haircut, nails, ears for small pets"
           },
           {
             service: "Full Groom (Medium)",
-            price: "$80 - $100",
+            price: "₱4,000 - ₱5,000",
             description: "Bath, haircut, nails, ears for medium pets"
           },
           {
             service: "Full Groom (Large)",
-            price: "$100 - $130",
+            price: "₱5,000 - ₱6,500",
             description: "Bath, haircut, nails, ears for large pets"
           }
         ]
@@ -160,22 +161,22 @@ const Services = () => {
         items: [
           {
             service: "Spay/Neuter (Cat)",
-            price: "$150 - $300",
+            price: "₱7,500 - ₱15,000",
             description: "Reproductive surgery for cats"
           },
           {
             service: "Spay/Neuter (Dog Small)",
-            price: "$200 - $400",
+            price: "₱10,000 - ₱20,000",
             description: "Reproductive surgery for small dogs"
           },
           {
             service: "Spay/Neuter (Dog Large)",
-            price: "$300 - $500",
+            price: "₱15,000 - ₱25,000",
             description: "Reproductive surgery for large dogs"
           },
           {
             service: "Dental Cleaning",
-            price: "$300 - $600",
+            price: "₱15,000 - ₱30,000",
             description: "Professional cleaning under anesthesia"
           }
         ]
@@ -185,17 +186,17 @@ const Services = () => {
         items: [
           {
             service: "Tumor Removal",
-            price: "$400 - $1,000+",
+            price: "₱20,000 - ₱50,000+",
             description: "Depending on size and location"
           },
           {
             service: "Orthopedic Surgery",
-            price: "$1,500 - $4,000+",
+            price: "₱75,000 - ₱200,000+",
             description: "Joint repair or bone fixation"
           },
           {
             service: "Soft Tissue Surgery",
-            price: "$800 - $2,500+",
+            price: "₱40,000 - ₱125,000+",
             description: "Internal organ procedures"
           }
         ]
