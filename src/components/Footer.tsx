@@ -12,9 +12,9 @@ export function Footer() {
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2">
               <span className="h-9 w-9 rounded-full bg-pet-blue-dark flex items-center justify-center">
-                <span className="font-bold text-white text-lg">PC</span>
+                <span className="font-bold text-white text-lg">PP</span>
               </span>
-              <span className="font-display font-semibold text-xl">PetCare</span>
+              <span className="font-display font-semibold text-xl">Purrfect Paw</span>
             </Link>
             <p className="text-muted-foreground text-sm">
               Premium pet care services for your beloved companions. 
@@ -91,7 +91,7 @@ export function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin size={18} className="text-pet-blue-dark shrink-0 mt-0.5" />
                 <span className="text-sm text-muted-foreground">
-                  123 Pet Street, Animal City, AC 12345
+                  123 Pet Street, Baguio City, Philippines
                 </span>
               </li>
               <li className="flex items-center gap-3">
@@ -103,7 +103,7 @@ export function Footer() {
               <li className="flex items-center gap-3">
                 <Mail size={18} className="text-pet-blue-dark shrink-0" />
                 <span className="text-sm text-muted-foreground">
-                  info@petcare.com
+                  info@purrfectpaw.com
                 </span>
               </li>
             </ul>
@@ -111,7 +111,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-gray-100 mt-10 pt-6 text-center text-sm text-muted-foreground">
-          <p>© {currentYear} PetCare Clinic. All rights reserved.</p>
+          <p>© {currentYear} Purrfect Paw Clinic. All rights reserved.</p>
         </div>
       </div>
     </footer>

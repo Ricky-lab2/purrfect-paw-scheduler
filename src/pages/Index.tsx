@@ -23,14 +23,14 @@ const Index = () => {
             title="Veterinary Care"
             description="Professional medical care for pets, including diagnostics, treatments, and preventive services."
             icon={Stethoscope}
-            priceRange="$50 - $200"
+            priceRange="1,500 - 5,000"
           />
           
           <ServiceCard
             title="Pet Grooming"
             description="Complete grooming services including bathing, haircuts, nail trimming, and ear cleaning."
             icon={Scissors}
-            priceRange="$30 - $100"
+            priceRange="800 - 2,500"
             iconClassName="from-pet-teal to-pet-teal-dark/90"
           />
           
@@ -38,7 +38,7 @@ const Index = () => {
             title="Vaccinations"
             description="Essential vaccines to protect your pet against common diseases and maintain their health."
             icon={Syringe}
-            priceRange="$25 - $75"
+            priceRange="500 - 1,800"
             iconClassName="from-pet-blue-dark to-pet-blue"
           />
           
@@ -63,7 +63,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <h2 className="section-title">Why Choose Us</h2>
           <p className="section-subtitle">
-            We provide exceptional pet care with expertise, compassion, and state-of-the-art facilities.
+            We provide exceptional pet care with expertise, compassion, and state-of-the-art facilities including AI-powered care.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
@@ -91,9 +91,9 @@ const Index = () => {
               <div className="w-12 h-12 bg-pet-teal/20 rounded-full flex items-center justify-center mb-4">
                 <Calendar className="text-pet-teal-dark" size={24} />
               </div>
-              <h3 className="text-xl font-medium mb-2">Easy Scheduling</h3>
+              <h3 className="text-xl font-medium mb-2">AI-Powered Support</h3>
               <p className="text-muted-foreground">
-                Book appointments online with our easy-to-use system and receive automatic reminders before your visit.
+                Get instant answers to pet care questions with our AI chatbot assistant available 24/7 to provide guidance.
               </p>
             </div>
           </div>
@@ -126,6 +126,18 @@ const Index = () => {
               Book Your Appointment
             </Link>
           </div>
+        </div>
+      </section>
+      
+      {/* AI Chatbot */}
+      <section className="section-container">
+        <h2 className="section-title">AI Pet Care Assistant</h2>
+        <p className="section-subtitle">
+          Get instant answers to your pet care questions with our AI-powered chatbot.
+        </p>
+        
+        <div className="max-w-3xl mx-auto">
+          <PetChatbot />
         </div>
       </section>
       

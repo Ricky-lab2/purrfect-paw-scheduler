@@ -36,7 +36,7 @@ export function ServiceCard({
       {priceRange && (
         <div className="mt-auto pt-2 border-t border-gray-100">
           <span className="text-sm font-medium">
-            Price: <span className="text-pet-blue-dark">{priceRange}</span>
+            Price: <span className="text-pet-blue-dark">₱{priceRange}</span>
           </span>
         </div>
       )}
