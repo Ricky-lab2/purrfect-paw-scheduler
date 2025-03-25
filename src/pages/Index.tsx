@@ -1,13 +1,12 @@
-
 import { HeroSection } from "@/components/HeroSection";
 import { ServiceCard } from "@/components/ServiceCard";
 import { NotificationPreview } from "@/components/NotificationPreview";
-import { PetChatbot } from "@/components/PetChatbot";
 import { Link } from "react-router-dom";
-import { Stethoscope, Scissors, Syringe, ShoppingBag, ChevronRight, Clock, Calendar, Award, Star, MapPin, User } from "lucide-react";
+import { Stethoscope, Scissors, Syringe, ShoppingBag, ChevronRight, Clock, Calendar, Award, Star, MapPin } from "lucide-react";
 import { VetProfileCard } from "@/components/VetProfileCard";
 import { TestimonialCard } from "@/components/TestimonialCard";
 import { LocationMap } from "@/components/LocationMap";
+import { FloatingChatbot } from "@/components/FloatingChatbot";
 
 const Index = () => {
   return (
@@ -27,14 +26,14 @@ const Index = () => {
             title="Veterinary Care"
             description="Professional medical care for pets, including diagnostics, treatments, and preventive services."
             icon={Stethoscope}
-            priceRange="1,500 - 5,000"
+            priceRange="₱1,500 - ₱5,000"
           />
           
           <ServiceCard
             title="Pet Grooming"
             description="Complete grooming services including bathing, haircuts, nail trimming, and ear cleaning."
             icon={Scissors}
-            priceRange="800 - 2,500"
+            priceRange="₱800 - ₱2,500"
             iconClassName="from-pet-teal to-pet-teal-dark/90"
           />
           
@@ -42,7 +41,7 @@ const Index = () => {
             title="Vaccinations"
             description="Essential vaccines to protect your pet against common diseases and maintain their health."
             icon={Syringe}
-            priceRange="500 - 1,800"
+            priceRange="₱500 - ₱1,800"
             iconClassName="from-pet-blue-dark to-pet-blue"
           />
           
@@ -248,20 +247,11 @@ const Index = () => {
         </div>
       </section>
       
-      {/* AI Chatbot */}
-      <section className="section-container">
-        <h2 className="section-title">AI Pet Care Assistant</h2>
-        <p className="section-subtitle">
-          Get instant answers to your pet care questions with our AI-powered chatbot.
-        </p>
-        
-        <div className="max-w-3xl mx-auto">
-          <PetChatbot />
-        </div>
-      </section>
-      
       {/* Notification Preview */}
       <NotificationPreview />
+      
+      {/* Floating Chatbot */}
+      <FloatingChatbot />
     </div>
   );
 };

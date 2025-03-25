@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { FloatingChatbot } from "@/components/FloatingChatbot";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -41,6 +42,7 @@ const App = () => (
             </Suspense>
           </main>
           <Footer />
+          <FloatingChatbot />
         </div>
       </BrowserRouter>
     </TooltipProvider>
