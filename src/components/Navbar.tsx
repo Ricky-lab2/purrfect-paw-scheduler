@@ -154,6 +154,10 @@ export function Navbar() {
                 <Link to="/appointments" className="block px-3 py-2 text-sm hover:bg-pet-gray rounded-md">
                   My Appointments
                 </Link>
+                {/* Add Admin Link */}
+                <Link to="/admin" className="block px-3 py-2 text-sm hover:bg-pet-gray rounded-md font-medium text-pet-blue-dark">
+                  Admin Dashboard
+                </Link>
                 <div className="border-t border-gray-100 my-1"></div>
                 <button className="w-full text-left px-3 py-2 text-sm hover:bg-pet-gray rounded-md text-red-500">
                   Sign Out
@@ -216,6 +220,15 @@ export function Navbar() {
                 <span className="text-sm">Profile</span>
               </button>
             </div>
+            
+            {/* Add Admin Link to mobile menu */}
+            <Link
+              to="/admin"
+              className="flex items-center gap-2 px-4 py-3 rounded-lg bg-pet-gray text-pet-blue-dark font-medium mt-2"
+            >
+              <UserCircle size={18} />
+              <span>Admin Dashboard</span>
+            </Link>
           </nav>
         </div>
       )}
