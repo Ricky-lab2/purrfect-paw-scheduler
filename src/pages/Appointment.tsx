@@ -92,17 +92,6 @@ const Appointment = () => {
                 </ul>
               </div>
             </div>
-            
-            <div className="card-glass p-6 bg-pet-blue/5 border-pet-blue/20">
-              <h3 className="text-xl font-medium mb-4">Emergency Care</h3>
-              <p className="text-sm mb-4">
-                If your pet requires immediate medical attention, please call our emergency line or visit our clinic directly.
-              </p>
-              <div className="bg-white rounded-lg p-3 text-center">
-                <p className="font-medium text-pet-blue-dark text-lg">(123) 456-7890</p>
-                <p className="text-xs text-muted-foreground">Available 24/7 for emergencies</p>
-              </div>
-            </div>
           </div>
         </div>
       </section>

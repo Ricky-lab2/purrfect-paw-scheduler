@@ -3,8 +3,9 @@ import { useState } from "react";
 import { Check, Calendar, Clock, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-type ServiceType = "checkup" | "vaccination" | "grooming" | "surgery" | "emergency";
+type ServiceType = "checkup" | "vaccination" | "grooming" | "surgery" | "deworming";
 type TimeSlot = "morning" | "afternoon" | "evening";
+type PetGender = "male" | "female";
 
 export function AppointmentForm() {
   const { toast } = useToast();
@@ -12,12 +13,15 @@ export function AppointmentForm() {
   const [formData, setFormData] = useState({
     name: "",
     petName: "",
+    petAge: "",
+    petGender: "" as PetGender,
     email: "",
     phone: "",
     serviceType: "" as ServiceType,
     date: "",
     timeSlot: "" as TimeSlot,
     isUrgent: false,
+    isFirstTime: false,
     additionalInfo: "",
   });
 
@@ -33,7 +37,7 @@ export function AppointmentForm() {
 
   const nextStep = () => {
     if (step === 1) {
-      if (!formData.name || !formData.petName || !formData.email || !formData.phone) {
+      if (!formData.name || !formData.petName || !formData.email || !formData.phone || !formData.petAge || !formData.petGender) {
         toast({
           title: "Missing information",
           description: "Please fill out all required fields",
@@ -83,12 +87,15 @@ export function AppointmentForm() {
     setFormData({
       name: "",
       petName: "",
+      petAge: "",
+      petGender: "" as PetGender,
       email: "",
       phone: "",
       serviceType: "" as ServiceType,
       date: "",
       timeSlot: "" as TimeSlot,
       isUrgent: false,
+      isFirstTime: false,
       additionalInfo: "",
     });
     setStep(1);
@@ -181,6 +188,42 @@ export function AppointmentForm() {
               </div>
             </div>
             
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="petAge" className="block text-sm font-medium text-gray-700 mb-1">
+                  Pet Age*
+                </label>
+                <input
+                  type="text"
+                  id="petAge"
+                  name="petAge"
+                  value={formData.petAge}
+                  onChange={handleChange}
+                  placeholder="e.g., 2 years"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="petGender" className="block text-sm font-medium text-gray-700 mb-1">
+                  Pet Gender*
+                </label>
+                <select
+                  id="petGender"
+                  name="petGender"
+                  value={formData.petGender}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
+                  required
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+            </div>
+            
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email Address*
@@ -219,7 +262,7 @@ export function AppointmentForm() {
             <h2 className="text-xl font-medium mb-4">Select Service</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {["checkup", "vaccination", "grooming", "surgery", "emergency"].map((service) => (
+              {["checkup", "vaccination", "grooming", "surgery", "deworming"].map((service) => (
                 <div key={service}>
                   <input
                     type="radio"
@@ -289,6 +332,21 @@ export function AppointmentForm() {
                 <p className="text-sm text-gray-600 mb-3">
                   Regular vaccinations are essential for protecting your pet against common diseases.
                 </p>
+                
+                <div className="flex items-start gap-2 mb-4">
+                  <input
+                    type="checkbox"
+                    id="isFirstTime"
+                    name="isFirstTime"
+                    checked={formData.isFirstTime}
+                    onChange={handleCheckboxChange}
+                    className="mt-1"
+                  />
+                  <label htmlFor="isFirstTime" className="text-sm">
+                    This is my pet's first time getting vaccinated
+                  </label>
+                </div>
+                
                 <ul className="text-sm space-y-2">
                   <li className="flex gap-2">
                     <Check size={16} className="text-pet-blue-dark shrink-0 mt-0.5" />
@@ -303,6 +361,68 @@ export function AppointmentForm() {
                     <span>Vaccination records and reminders</span>
                   </li>
                 </ul>
+              </div>
+            )}
+            
+            {formData.serviceType === "surgery" && (
+              <div className="p-4 bg-pet-blue/5 rounded-lg border border-pet-blue/20">
+                <h3 className="font-medium mb-2">Surgery Information</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Our veterinary surgeons provide a range of surgical services with state-of-the-art equipment.
+                </p>
+                
+                <div>
+                  <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700 mb-1">
+                    Additional Information (prior conditions, medications, etc.)
+                  </label>
+                  <textarea
+                    id="additionalInfo"
+                    name="additionalInfo"
+                    value={formData.additionalInfo}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
+                    rows={3}
+                    placeholder="Please provide any relevant information about your pet's condition..."
+                  ></textarea>
+                </div>
+              </div>
+            )}
+            
+            {formData.serviceType === "deworming" && (
+              <div className="p-4 bg-pet-blue/5 rounded-lg border border-pet-blue/20">
+                <h3 className="font-medium mb-2">Deworming Information</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Regular deworming helps protect your pet from internal parasites.
+                </p>
+                
+                <div className="flex items-start gap-2 mb-4">
+                  <input
+                    type="checkbox"
+                    id="isFirstTime"
+                    name="isFirstTime"
+                    checked={formData.isFirstTime}
+                    onChange={handleCheckboxChange}
+                    className="mt-1"
+                  />
+                  <label htmlFor="isFirstTime" className="text-sm">
+                    This is my pet's first time getting dewormed
+                  </label>
+                </div>
+                
+                <div>
+                  <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700 mb-1">
+                    Additional Information
+                  </label>
+                  <textarea
+                    id="additionalInfo"
+                    name="additionalInfo"
+                    value={formData.additionalInfo}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
+                    rows={3}
+                    placeholder="Please provide any relevant information about your pet..."
+                  ></textarea>
+                </div>
               </div>
             )}
           </div>
@@ -377,6 +497,12 @@ export function AppointmentForm() {
                 
                 <div className="text-gray-500">Pet Name:</div>
                 <div className="font-medium">{formData.petName}</div>
+                
+                <div className="text-gray-500">Pet Age:</div>
+                <div className="font-medium">{formData.petAge}</div>
+                
+                <div className="text-gray-500">Pet Gender:</div>
+                <div className="font-medium capitalize">{formData.petGender}</div>
                 
                 {formData.date && (
                   <>

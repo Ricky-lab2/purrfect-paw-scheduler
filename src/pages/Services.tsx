@@ -37,11 +37,6 @@ const Services = () => {
             service: "Follow-up Appointment",
             price: "₱2,000 - ₱3,000",
             description: "Progress evaluation visit"
-          },
-          {
-            service: "Emergency Consultation",
-            price: "₱5,000 - ₱7,500",
-            description: "Urgent care examination"
           }
         ]
       },
@@ -201,6 +196,53 @@ const Services = () => {
           }
         ]
       }
+    ],
+    deworming: [
+      {
+        category: "Standard Deworming",
+        items: [
+          {
+            service: "Puppy/Kitten Deworming",
+            price: "₱800 - ₱1,500",
+            description: "For young pets under 6 months"
+          },
+          {
+            service: "Adult Dog Deworming (Small)",
+            price: "₱1,000 - ₱1,800",
+            description: "For dogs under 25lbs"
+          },
+          {
+            service: "Adult Dog Deworming (Medium/Large)",
+            price: "₱1,500 - ₱2,500",
+            description: "For dogs over 25lbs"
+          },
+          {
+            service: "Adult Cat Deworming",
+            price: "₱1,000 - ₱1,800",
+            description: "Standard treatment for adult cats"
+          }
+        ]
+      },
+      {
+        category: "Special Treatments",
+        items: [
+          {
+            service: "Heartworm Prevention",
+            price: "₱1,500 - ₱3,000",
+            description: "Monthly preventive treatment"
+          },
+          {
+            service: "Tapeworm Treatment",
+            price: "₱1,800 - ₱2,500",
+            description: "Specific treatment for tapeworms"
+          },
+          {
+            service: "Annual Deworming Package",
+            price: "₱3,500 - ₱5,000",
+            description: "Complete yearly deworming program"
+          }
+        ]
+      }
     ]
   };
 
@@ -276,8 +318,8 @@ const Services = () => {
           />
           
           <ServiceCard
-            title="Pharmacy Services"
-            description="Convenient access to medications and prescription diets for your pet."
+            title="Deworming"
+            description="Regular deworming treatments to protect your pet from internal parasites."
             icon={Pill}
           />
         </div>

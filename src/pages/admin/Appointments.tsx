@@ -72,11 +72,11 @@ const Appointments = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Confirmed": return "bg-blue-100 text-blue-800";
-      case "Completed": return "bg-green-100 text-green-800";
-      case "Pending": return "bg-yellow-100 text-yellow-800";
-      case "Cancelled": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "Confirmed": return "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300";
+      case "Completed": return "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300";
+      case "Pending": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300";
+      case "Cancelled": return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300";
+      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
     }
   };
 
@@ -97,13 +97,13 @@ const Appointments = () => {
           <input
             type="text"
             placeholder="Search appointments..."
-            className="pl-10 pr-4 py-2 w-full rounded-md border focus:outline-none focus:ring-2 focus:ring-pet-blue-dark"
+            className="pl-10 pr-4 py-2 w-full rounded-md border focus:outline-none focus:ring-2 focus:ring-pet-blue-dark dark:bg-gray-800 dark:border-gray-700"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <select
-          className="px-3 py-2 border rounded-md"
+          className="px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white"
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
         >
@@ -113,17 +113,18 @@ const Appointments = () => {
           <option value="Completed">Completed</option>
           <option value="Cancelled">Cancelled</option>
         </select>
-        <select className="px-3 py-2 border rounded-md">
+        <select className="px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white">
           <option value="all">All Services</option>
           <option value="checkup">Checkup</option>
           <option value="vaccination">Vaccination</option>
           <option value="grooming">Grooming</option>
           <option value="surgery">Surgery</option>
+          <option value="deworming">Deworming</option>
         </select>
       </div>
 
       {/* Appointments Table */}
-      <div className="border rounded-md">
+      <div className="border rounded-md dark:border-gray-700">
         <Table>
           <TableHeader>
             <TableRow>
@@ -152,7 +153,7 @@ const Appointments = () => {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <button className="p-1 rounded-full hover:bg-gray-100">
+                  <button className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
                     <MoreHorizontal className="h-4 w-4" />
                   </button>
                 </TableCell>
