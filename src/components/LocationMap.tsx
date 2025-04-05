@@ -1,7 +1,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin } from "lucide-react";
+import { MapPin, Store } from "lucide-react";
+
+// Define partner pet shops data
+const partnerShops = [
+  { name: "PetExpress Baguio", position: "top-1/3 left-1/4" },
+  { name: "Pet Kingdom", position: "bottom-1/3 right-1/4" },
+  { name: "Pet Supply Hub", position: "top-1/4 right-1/3" },
+];
 
 export function LocationMap() {
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -32,24 +39,15 @@ export function LocationMap() {
             </div>
           </div>
           
-          {/* Nearby locations - these would be dynamically populated in a real app */}
-          <div className="absolute top-1/3 left-1/4">
-            <div className="bg-white text-pet-blue-dark px-2 py-1 rounded-md shadow-sm text-xs">
-              Burnham Park Vet
+          {/* Partner pet shops - dynamically rendered from partners data */}
+          {partnerShops.map((shop, index) => (
+            <div key={index} className={`absolute ${shop.position}`}>
+              <div className="bg-white text-pet-blue-dark px-2 py-1 rounded-md shadow-sm text-xs flex items-center gap-1">
+                <Store size={12} />
+                {shop.name}
+              </div>
             </div>
-          </div>
-          
-          <div className="absolute bottom-1/3 right-1/4">
-            <div className="bg-white text-pet-blue-dark px-2 py-1 rounded-md shadow-sm text-xs">
-              SM City Animal Clinic
-            </div>
-          </div>
-          
-          <div className="absolute top-1/4 right-1/3">
-            <div className="bg-white text-pet-blue-dark px-2 py-1 rounded-md shadow-sm text-xs">
-              Baguio Animal Hospital
-            </div>
-          </div>
+          ))}
         </div>
         
         {/* Map controls/legend */}
@@ -62,8 +60,8 @@ export function LocationMap() {
           </div>
           
           <div className="flex items-center gap-2 text-xs">
-            <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-            <span>Other Veterinary Clinics</span>
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            <span>Partner Pet Shops</span>
           </div>
         </div>
       </CardContent>

@@ -1,3 +1,4 @@
+
 import { HeroSection } from "@/components/HeroSection";
 import { ServiceCard } from "@/components/ServiceCard";
 import { NotificationPreview } from "@/components/NotificationPreview";
@@ -131,7 +132,7 @@ const Index = () => {
               </div>
               <h3 className="text-xl font-medium mb-2">Convenient Hours</h3>
               <p className="text-muted-foreground">
-                We offer flexible appointment times and emergency services to ensure your pet receives care when needed.
+                We offer flexible appointment times and services to ensure your pet receives care when needed.
               </p>
             </div>
             
@@ -169,7 +170,7 @@ const Index = () => {
             petType="Cat Owner"
             rating={5}
             image="https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80"
-            testimonial="My cat had an emergency late at night, and the team at Purrfect Paw was available immediately. They handled everything with calm expertise. I'm incredibly grateful for their care."
+            testimonial="My cat had an issue, and the team at Purrfect Paw was available immediately. They handled everything with calm expertise. I'm incredibly grateful for their care."
           />
           
           <TestimonialCard
@@ -213,9 +214,9 @@ const Index = () => {
       
       {/* Find Us / Location Map */}
       <section className="section-container bg-pet-gray/30">
-        <h2 className="section-title">Find Us in Baguio City</h2>
+        <h2 className="section-title">Find Us and Our Partners in Baguio City</h2>
         <p className="section-subtitle">
-          Our clinic is conveniently located in the heart of Baguio City. Visit us or find nearby veterinary locations.
+          Our clinic and partner pet shops are conveniently located throughout Baguio City. Visit us or find a partner location near you.
         </p>
         
         <div className="mt-8 rounded-xl overflow-hidden shadow-lg">
@@ -239,7 +240,6 @@ const Index = () => {
                   <h4 className="font-medium">Contact</h4>
                   <p className="text-sm text-muted-foreground">Phone: (074) 123-4567</p>
                   <p className="text-sm text-muted-foreground">Email: info@purrfectpaw.ph</p>
-                  <p className="text-sm text-muted-foreground">Emergency: (074) 987-6543</p>
                 </div>
               </div>
             </div>

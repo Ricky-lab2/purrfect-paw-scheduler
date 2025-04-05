@@ -51,19 +51,6 @@ export function HeroSection() {
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-              
-              {/* Floating card */}
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-xs bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-lg">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-pet-teal/20 flex items-center justify-center shrink-0">
-                    <span className="text-pet-teal-dark text-xl font-bold">24</span>
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Emergency Care Available</h3>
-                    <p className="text-sm text-muted-foreground">Our team is available 24/7 for urgent pet care needs</p>
-                  </div>
-                </div>
-              </div>
             </div>
             
             {/* Decoration elements */}
