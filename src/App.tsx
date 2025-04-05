@@ -16,6 +16,13 @@ const Appointment = lazy(() => import("./pages/Appointment"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+// Admin Pages
+const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const AdminAppointments = lazy(() => import("./pages/admin/Appointments"));
+const AdminPets = lazy(() => import("./pages/admin/Pets"));
+const AdminUsers = lazy(() => import("./pages/admin/Users"));
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -33,10 +40,20 @@ const App = () => (
               </div>
             }>
               <Routes>
+                {/* Client Routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/services" element={<Services />} />
                 <Route path="/appointment" element={<Appointment />} />
                 <Route path="/faq" element={<FAQ />} />
+                
+                {/* Admin Routes */}
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="appointments" element={<AdminAppointments />} />
+                  <Route path="pets" element={<AdminPets />} />
+                  <Route path="users" element={<AdminUsers />} />
+                </Route>
+                
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
