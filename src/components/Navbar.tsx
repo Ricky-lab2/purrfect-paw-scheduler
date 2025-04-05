@@ -11,6 +11,9 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const location = useLocation();
+  
+  // Check if we're on an admin route
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,6 +34,11 @@ export function Navbar() {
     { name: "Appointment", href: "/appointment" },
     { name: "FAQ", href: "/faq" },
   ];
+
+  // Don't show the navbar on admin pages
+  if (isAdminRoute) {
+    return null;
+  }
 
   return (
     <header
