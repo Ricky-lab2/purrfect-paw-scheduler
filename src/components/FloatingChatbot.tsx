@@ -1,7 +1,7 @@
 
 import { useState } from "react";
-import { MessageCircle, X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MessageCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PetChatbot } from "./PetChatbot";
 
 export function FloatingChatbot() {
@@ -23,9 +23,12 @@ export function FloatingChatbot() {
         <DialogContent className="sm:max-w-md p-0 h-[600px] max-h-[80vh] overflow-hidden">
           <DialogHeader className="bg-pet-blue-dark text-white p-4">
             <DialogTitle>Purrfect Paw AI Assistant</DialogTitle>
+            <DialogDescription className="text-white/80">
+              Ask me anything about pet care!
+            </DialogDescription>
           </DialogHeader>
           <div className="h-full overflow-hidden">
-            <PetChatbot />
+            <PetChatbot hideHeader={true} />
           </div>
         </DialogContent>
       </Dialog>

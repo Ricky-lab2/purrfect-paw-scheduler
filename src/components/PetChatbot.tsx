@@ -61,7 +61,11 @@ const findResponse = (query: string): string => {
   return "I don't have specific information about that. For detailed assistance, please call us at (123) 456-7890 or visit our clinic in Baguio City.";
 };
 
-export function PetChatbot() {
+interface PetChatbotProps {
+  hideHeader?: boolean;
+}
+
+export function PetChatbot({ hideHeader = false }: PetChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, text: "Hello! I'm your AI pet care assistant. How can I help you today?", isUser: false }
   ]);
@@ -106,13 +110,15 @@ export function PetChatbot() {
   }, [messages]);
   
   return (
-    <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-md">
-      <div className="bg-pet-blue-dark text-white p-4">
-        <h3 className="text-lg font-medium">Purrfect Paw AI Assistant</h3>
-        <p className="text-sm text-white/80">Ask me anything about pet care!</p>
-      </div>
+    <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-md h-full flex flex-col">
+      {!hideHeader && (
+        <div className="bg-pet-blue-dark text-white p-4">
+          <h3 className="text-lg font-medium">Purrfect Paw AI Assistant</h3>
+          <p className="text-sm text-white/80">Ask me anything about pet care!</p>
+        </div>
+      )}
       
-      <div className="h-96 overflow-y-auto p-4 bg-gray-50">
+      <div className="flex-grow overflow-y-auto p-4 bg-gray-50">
         {messages.map(message => (
           <div 
             key={message.id} 
