@@ -1,7 +1,8 @@
-
 import { useState } from "react";
 import { Check, Calendar, Clock, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { saveAppointment } from "@/utils/localStorageDB";
+import { useNavigate } from "react-router-dom";
 
 type ServiceType = "checkup" | "vaccination" | "grooming" | "surgery" | "deworming";
 type TimeSlot = "morning" | "afternoon" | "evening";
@@ -9,6 +10,7 @@ type PetGender = "male" | "female";
 
 export function AppointmentForm() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [formData, setFormData] = useState({
     name: "",
@@ -24,6 +26,7 @@ export function AppointmentForm() {
     isFirstTime: false,
     additionalInfo: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -64,7 +67,7 @@ export function AppointmentForm() {
     if (step === 3) setStep(2);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.date || !formData.timeSlot) {
       toast({
@@ -75,35 +78,59 @@ export function AppointmentForm() {
       return;
     }
     
-    // Here you would normally send the data to your backend
-    console.log("Form submitted:", formData);
-    
-    toast({
-      title: "Appointment Scheduled",
-      description: "We'll send you a confirmation email shortly",
-    });
-    
-    // Reset form
-    setFormData({
-      name: "",
-      petName: "",
-      petAge: "",
-      petGender: "" as PetGender,
-      email: "",
-      phone: "",
-      serviceType: "" as ServiceType,
-      date: "",
-      timeSlot: "" as TimeSlot,
-      isUrgent: false,
-      isFirstTime: false,
-      additionalInfo: "",
-    });
-    setStep(1);
+    try {
+      setIsSubmitting(true);
+      
+      const appointment = saveAppointment({
+        petName: formData.petName,
+        ownerName: formData.name,
+        petAge: formData.petAge,
+        petGender: formData.petGender,
+        email: formData.email,
+        phone: formData.phone,
+        service: formData.serviceType,
+        date: formData.date,
+        timeSlot: formData.timeSlot,
+        additionalInfo: formData.additionalInfo,
+        isUrgent: formData.isUrgent,
+        isFirstTime: formData.isFirstTime
+      });
+      
+      toast({
+        title: "Appointment Scheduled",
+        description: `Your appointment ID is ${appointment.id}. We'll send you a confirmation email shortly.`,
+      });
+      
+      setFormData({
+        name: "",
+        petName: "",
+        petAge: "",
+        petGender: "" as PetGender,
+        email: "",
+        phone: "",
+        serviceType: "" as ServiceType,
+        date: "",
+        timeSlot: "" as TimeSlot,
+        isUrgent: false,
+        isFirstTime: false,
+        additionalInfo: "",
+      });
+      setStep(1);
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "There was an error booking your appointment. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Booking error:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      {/* Progress bar */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
@@ -151,7 +178,6 @@ export function AppointmentForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="card-glass p-6">
-        {/* Step 1: Personal Information */}
         {step === 1 && (
           <div className="space-y-4 animate-fade-in">
             <h2 className="text-xl font-medium mb-4">Personal Information</h2>
@@ -256,7 +282,6 @@ export function AppointmentForm() {
           </div>
         )}
 
-        {/* Step 2: Service Selection */}
         {step === 2 && (
           <div className="space-y-6 animate-fade-in">
             <h2 className="text-xl font-medium mb-4">Select Service</h2>
@@ -428,7 +453,6 @@ export function AppointmentForm() {
           </div>
         )}
 
-        {/* Step 3: Schedule */}
         {step === 3 && (
           <div className="space-y-6 animate-fade-in">
             <h2 className="text-xl font-medium mb-4">Schedule Appointment</h2>
@@ -522,7 +546,6 @@ export function AppointmentForm() {
           </div>
         )}
 
-        {/* Form Navigation */}
         <div className="flex justify-between mt-8">
           {step > 1 ? (
             <button
@@ -547,9 +570,10 @@ export function AppointmentForm() {
           ) : (
             <button
               type="submit"
-              className="px-5 py-2 bg-pet-blue-dark text-white rounded-lg hover:bg-pet-blue-dark/90 transition-colors"
+              disabled={isSubmitting}
+              className="px-5 py-2 bg-pet-blue-dark text-white rounded-lg hover:bg-pet-blue-dark/90 transition-colors flex items-center gap-2 disabled:opacity-70"
             >
-              Schedule Appointment
+              {isSubmitting ? "Scheduling..." : "Schedule Appointment"}
             </button>
           )}
         </div>
