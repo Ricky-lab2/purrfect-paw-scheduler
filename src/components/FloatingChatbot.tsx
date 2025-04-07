@@ -21,9 +21,9 @@ export function FloatingChatbot() {
       {/* Dialog for chatbot */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-md p-0 h-[600px] max-h-[80vh] overflow-hidden">
-          <DialogHeader className="bg-pet-blue-dark text-white p-4">
-            <DialogTitle>Purrfect Paw AI Assistant</DialogTitle>
-            <DialogDescription className="text-white/80">
+          <DialogHeader className="bg-pet-blue-dark text-white py-2 px-4">
+            <DialogTitle className="text-base">Purrfect Paw AI Assistant</DialogTitle>
+            <DialogDescription className="text-white/80 text-xs">
               Ask me anything about pet care!
             </DialogDescription>
           </DialogHeader>
