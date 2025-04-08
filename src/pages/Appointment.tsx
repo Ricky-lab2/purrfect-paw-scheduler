@@ -1,13 +1,16 @@
 
 import { useState, useEffect } from "react";
 import { AppointmentForm } from "@/components/AppointmentForm";
-import { CheckCircle2, Search } from "lucide-react";
+import { CheckCircle2, Search, LogIn } from "lucide-react";
 import { getAppointments, Appointment as AppointmentType } from "@/utils/localStorageDB";
+import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
 
 const Appointment = () => {
   const [userEmail, setUserEmail] = useState("");
   const [userAppointments, setUserAppointments] = useState<AppointmentType[]>([]);
   const [isChecking, setIsChecking] = useState(false);
+  const { isAuthenticated } = useAuth();
   
   const checkAppointments = () => {
     if (!userEmail) return;
@@ -53,7 +56,30 @@ const Appointment = () => {
       <section className="section-container">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <AppointmentForm />
+            {isAuthenticated ? (
+              <AppointmentForm />
+            ) : (
+              <div className="card-glass p-8 text-center">
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <div className="w-16 h-16 bg-pet-blue-dark/10 rounded-full flex items-center justify-center mb-2">
+                    <LogIn className="h-8 w-8 text-pet-blue-dark" />
+                  </div>
+                  <h2 className="text-2xl font-bold">Login Required</h2>
+                  <p className="text-muted-foreground max-w-md">
+                    You need to be logged in to book an appointment for your pet. 
+                    Please log in to your account to continue.
+                  </p>
+                  <div className="flex gap-4 mt-4">
+                    <Link 
+                      to="/login" 
+                      className="px-5 py-2 bg-pet-blue-dark text-white rounded-lg hover:bg-pet-blue-dark/90 transition-colors"
+                    >
+                      Log in
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="space-y-6">
