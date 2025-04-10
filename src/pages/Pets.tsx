@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -14,7 +13,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-// Define form schema
 const petFormSchema = z.object({
   name: z.string().min(1, { message: "Pet name is required" }),
   gender: z.enum(["male", "female"], {
@@ -77,7 +75,13 @@ const Pets = () => {
 
   const onSubmit = (data: PetFormValues) => {
     if (editingPetIndex !== null) {
-      updatePet(editingPetIndex, data);
+      const updatedPet = {
+        name: data.name,
+        gender: data.gender,
+        birthDate: data.birthDate,
+        type: data.type
+      };
+      updatePet(editingPetIndex, updatedPet);
       toast({
         title: "Pet updated",
         description: `${data.name}'s information has been updated.`,

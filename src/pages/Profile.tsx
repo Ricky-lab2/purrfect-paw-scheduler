@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Edit2, Save, User as UserIcon } from "lucide-react";
 
 const Profile = () => {
-  const { user, updateUserInfo } = useAuth();
+  const { user, updateUserInfo, isAdmin } = useAuth();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -41,6 +41,7 @@ const Profile = () => {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
+      address: formData.address,
     });
     toast({
       title: "Profile updated",
@@ -68,7 +69,7 @@ const Profile = () => {
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-sm text-muted-foreground">
-                  {user.isAdmin ? "Administrator" : "Customer"}
+                  {isAdmin ? "Administrator" : "Customer"}
                 </p>
               </CardContent>
             </Card>
