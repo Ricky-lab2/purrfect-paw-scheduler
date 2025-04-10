@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { ServiceCard } from "@/components/ServiceCard";
 import { Stethoscope, Scissors, Syringe, ShoppingBag, HeartPulse, Microscope, Beaker, Brain, Pill, Cat, Dog, Rabbit, MapPin } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAppointment } from "@/contexts/AppointmentContext";
 
 interface PricingItem {
   service: string;
@@ -17,6 +18,13 @@ interface PricingCategory {
 
 const Services = () => {
   const [activeTab, setActiveTab] = useState<string>("general");
+  const { setServiceTypeAndNavigate } = useAppointment();
+  const navigate = useNavigate();
+  
+  const handleBookService = (service: string) => {
+    setServiceTypeAndNavigate(service as any);
+    navigate("/appointment");
+  };
   
   const pricingData: Record<string, PricingCategory[]> = {
     general: [
@@ -267,6 +275,14 @@ const Services = () => {
             title="Veterinary Care"
             description="Complete medical care including examinations, diagnostics, treatments, and preventive services."
             icon={Stethoscope}
+            actions={
+              <button 
+                onClick={() => handleBookService("checkup")}
+                className="mt-4 px-4 py-2 bg-pet-blue-dark text-white rounded-lg hover:bg-pet-blue-dark/90 transition-colors text-sm"
+              >
+                Book Checkup
+              </button>
+            }
           />
           
           <ServiceCard
@@ -274,6 +290,14 @@ const Services = () => {
             description="Professional grooming services to keep your pet clean, comfortable, and looking their best."
             icon={Scissors}
             iconClassName="from-pet-teal to-pet-teal-dark/90"
+            actions={
+              <button 
+                onClick={() => handleBookService("grooming")}
+                className="mt-4 px-4 py-2 bg-pet-teal-dark text-white rounded-lg hover:bg-pet-teal-dark/90 transition-colors text-sm"
+              >
+                Book Grooming
+              </button>
+            }
           />
           
           <ServiceCard
@@ -281,6 +305,14 @@ const Services = () => {
             description="Essential vaccines to protect your pet against common infectious diseases."
             icon={Syringe}
             iconClassName="from-pet-blue-dark to-pet-blue"
+            actions={
+              <button 
+                onClick={() => handleBookService("vaccination")}
+                className="mt-4 px-4 py-2 bg-pet-blue-dark text-white rounded-lg hover:bg-pet-blue-dark/90 transition-colors text-sm"
+              >
+                Book Vaccination
+              </button>
+            }
           />
           
           <ServiceCard
@@ -294,6 +326,14 @@ const Services = () => {
             title="Surgery"
             description="From routine procedures to complex operations, with modern equipment and techniques."
             icon={HeartPulse}
+            actions={
+              <button 
+                onClick={() => handleBookService("surgery")}
+                className="mt-4 px-4 py-2 bg-pet-blue-dark text-white rounded-lg hover:bg-pet-blue-dark/90 transition-colors text-sm"
+              >
+                Book Surgery
+              </button>
+            }
           />
           
           <ServiceCard
@@ -321,6 +361,14 @@ const Services = () => {
             title="Deworming"
             description="Regular deworming treatments to protect your pet from internal parasites."
             icon={Pill}
+            actions={
+              <button 
+                onClick={() => handleBookService("deworming")}
+                className="mt-4 px-4 py-2 bg-pet-blue-dark text-white rounded-lg hover:bg-pet-blue-dark/90 transition-colors text-sm"
+              >
+                Book Deworming
+              </button>
+            }
           />
         </div>
       </section>
@@ -399,8 +447,8 @@ const Services = () => {
                 <h3 className="text-xl font-medium mb-4">{category.category}</h3>
                 <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
                   <div className="grid grid-cols-12 bg-pet-gray font-medium text-sm py-3 px-4">
-                    <div className="col-span-5 md:col-span-6">Service</div>
-                    <div className="col-span-3 md:col-span-2">Price</div>
+                    <div className="col-span-5 md:col-span-5">Service</div>
+                    <div className="col-span-3 md:col-span-3">Price</div>
                     <div className="col-span-4 md:col-span-4">Description</div>
                   </div>
                   
@@ -409,8 +457,8 @@ const Services = () => {
                       key={itemIndex}
                       className="grid grid-cols-12 py-3 px-4 border-t border-gray-100 text-sm"
                     >
-                      <div className="col-span-5 md:col-span-6 font-medium">{item.service}</div>
-                      <div className="col-span-3 md:col-span-2 text-pet-blue-dark">{item.price}</div>
+                      <div className="col-span-5 md:col-span-5 font-medium">{item.service}</div>
+                      <div className="col-span-3 md:col-span-3 text-pet-blue-dark">₱{item.price}</div>
                       <div className="col-span-4 md:col-span-4 text-muted-foreground">{item.description}</div>
                     </div>
                   ))}

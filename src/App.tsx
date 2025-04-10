@@ -1,82 +1,54 @@
-
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { lazy, Suspense } from "react";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
-import { FloatingChatbot } from "@/components/FloatingChatbot";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import Home from "@/pages/Home";
+import About from "@/pages/About";
+import Contact from "@/pages/Contact";
+import Services from "@/pages/Services";
+import Appointment from "@/pages/Appointment";
+import Login from "@/pages/Login";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Admin from "@/pages/Admin";
+import { FloatingChatbot } from "@/components/FloatingChatbot";
+import { AppointmentProvider } from "@/contexts/AppointmentContext";
 
-// Lazy load pages for better performance
-const Index = lazy(() => import("./pages/Index"));
-const Services = lazy(() => import("./pages/Services"));
-const Appointment = lazy(() => import("./pages/Appointment"));
-const FAQ = lazy(() => import("./pages/FAQ"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const Login = lazy(() => import("./pages/Login"));
-
-// Admin Pages
-const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
-const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
-const AdminAppointments = lazy(() => import("./pages/admin/Appointments"));
-const AdminPets = lazy(() => import("./pages/admin/Pets"));
-const AdminUsers = lazy(() => import("./pages/admin/Users"));
-
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light">
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <div className="min-h-screen flex flex-col">
-              <Navbar />
-              <main className="flex-grow">
-                <Suspense fallback={
-                  <div className="flex items-center justify-center h-screen">
-                    <div className="animate-pulse">Loading...</div>
-                  </div>
-                }>
-                  <Routes>
-                    {/* Public Routes */}
-                    <Route path="/" element={<Index />} />
-                    <Route path="/services" element={<Services />} />
-                    <Route path="/appointment" element={<Appointment />} />
-                    <Route path="/faq" element={<FAQ />} />
-                    <Route path="/login" element={<Login />} />
-                    
-                    {/* Protected Admin Routes */}
-                    <Route path="/admin" element={
-                      <ProtectedRoute requireAdmin={true}>
-                        <AdminLayout />
-                      </ProtectedRoute>
-                    }>
-                      <Route index element={<AdminDashboard />} />
-                      <Route path="appointments" element={<AdminAppointments />} />
-                      <Route path="pets" element={<AdminPets />} />
-                      <Route path="users" element={<AdminUsers />} />
-                    </Route>
-                    
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-              </main>
-              <Footer />
-              <FloatingChatbot />
-            </div>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <BrowserRouter>
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+        <AuthProvider>
+          <AppointmentProvider>
+            <Toaster />
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/appointment"
+                element={
+                  <ProtectedRoute>
+                    <Appointment />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Admin />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+            <FloatingChatbot />
+          </AppointmentProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
+  );
+}
 
 export default App;
