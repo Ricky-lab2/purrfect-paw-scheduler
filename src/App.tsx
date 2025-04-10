@@ -15,6 +15,9 @@ import { FloatingChatbot } from "./components/FloatingChatbot";
 import { AppointmentProvider } from "./contexts/AppointmentContext";
 import { Navbar } from "./components/Navbar"; 
 import { Footer } from "./components/Footer";
+import Profile from "./pages/Profile";
+import Pets from "./pages/Pets";
+import Appointments from "./pages/Appointments";
 
 function App() {
   return (
@@ -35,6 +38,30 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Appointment />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pets"
+                element={
+                  <ProtectedRoute>
+                    <Pets />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/appointments"
+                element={
+                  <ProtectedRoute>
+                    <Appointments />
                   </ProtectedRoute>
                 }
               />

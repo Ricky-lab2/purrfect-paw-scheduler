@@ -15,6 +15,7 @@ interface UserInfo {
   name: string;
   email: string;
   phone: string;
+  address?: string;
   pets?: Pet[];
 }
 
@@ -49,6 +50,7 @@ const mockUsers = [
       name: "Admin User",
       email: "admin@example.com",
       phone: "09123456789",
+      address: "123 Admin Street, Manila"
     },
     // Add name property to match User interface
     name: "Admin User"
@@ -62,6 +64,7 @@ const mockUsers = [
       name: "Customer User",
       email: "customer@example.com",
       phone: "09987654321",
+      address: "456 Customer Avenue, Makati",
       pets: [
         {
           name: "Buddy",
