@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -75,6 +76,7 @@ const Pets = () => {
 
   const onSubmit = (data: PetFormValues) => {
     if (editingPetIndex !== null) {
+      // Ensure all required properties are provided when updating a pet
       const updatedPet = {
         name: data.name,
         gender: data.gender,
