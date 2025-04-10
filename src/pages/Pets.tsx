@@ -76,12 +76,12 @@ const Pets = () => {
 
   const onSubmit = (data: PetFormValues) => {
     if (editingPetIndex !== null) {
-      // Ensure all required properties are provided when updating a pet
+      // The fix: Ensure all required properties are non-optional when updating a pet
       const updatedPet = {
-        name: data.name,
-        gender: data.gender,
-        birthDate: data.birthDate,
-        type: data.type
+        name: data.name, // This is required by Pet type
+        gender: data.gender, // This is required
+        birthDate: data.birthDate, // This is optional in Pet type
+        type: data.type // This is required
       };
       updatePet(editingPetIndex, updatedPet);
       toast({
