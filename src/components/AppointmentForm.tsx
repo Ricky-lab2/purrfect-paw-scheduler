@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Grooming packages
 const groomingPackages = [
@@ -79,6 +80,7 @@ const formSchema = z.object({
   isFirstTime: z.boolean().optional(),
   additionalInfo: z.string().optional(),
   groomingPackage: z.string().optional(),
+  selectedPetIndex: z.number().optional(),
 });
 
 export function AppointmentForm() {
@@ -107,6 +109,7 @@ export function AppointmentForm() {
       isFirstTime: formData.isFirstTime,
       additionalInfo: formData.additionalInfo,
       groomingPackage: formData.groomingPackage,
+      selectedPetIndex: -1,
     },
   });
 
@@ -116,39 +119,6 @@ export function AppointmentForm() {
       form.setValue('name', user.userInfo.name || '');
       form.setValue('email', user.userInfo.email || '');
       form.setValue('phone', user.userInfo.phone || '');
-      
-      if (user.userInfo.pets && user.userInfo.pets.length > 0) {
-        const pet = user.userInfo.pets[0];
-        form.setValue('petName', pet.name || '');
-        form.setValue('petGender', pet.gender || '');
-        
-        if (pet.birthDate) {
-          form.setValue('petBirthDate', pet.birthDate);
-          // Calculate pet age
-          const birthDate = new Date(pet.birthDate);
-          const currentDate = new Date();
-          
-          let ageYears = currentDate.getFullYear() - birthDate.getFullYear();
-          const monthDifference = currentDate.getMonth() - birthDate.getMonth();
-          
-          if (monthDifference < 0 || (monthDifference === 0 && currentDate.getDate() < birthDate.getDate())) {
-            ageYears--;
-          }
-          
-          const ageMonths = (monthDifference < 0 ? 12 + monthDifference : monthDifference);
-          
-          let ageString = "";
-          if (ageYears > 0) {
-            ageString = `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
-          }
-          if (ageMonths > 0 || ageYears === 0) {
-            if (ageString) ageString += ", ";
-            ageString += `${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
-          }
-          
-          form.setValue('petAge', ageString);
-        }
-      }
     }
     
     // Skip to step 3 if serviceType is already selected
@@ -179,6 +149,18 @@ export function AppointmentForm() {
       }
     } else if (step === 2) {
       form.trigger(['serviceType']);
+      // For grooming service, we also validate that a package is selected
+      if (form.getValues('serviceType') === 'grooming') {
+        if (!form.getValues('groomingPackage')) {
+          toast({
+            title: "Package Required",
+            description: "Please select a grooming package to continue.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
       if (form.formState.isValid && form.getValues('serviceType')) {
         setStep(3);
       }
@@ -230,6 +212,57 @@ export function AppointmentForm() {
       setIsSubmitting(false);
     }
   });
+
+  // Handle pet selection from user's registered pets
+  const handlePetSelection = (index: number) => {
+    if (!user?.userInfo.pets || index < 0 || index >= user.userInfo.pets.length) return;
+    
+    const selectedPet = user.userInfo.pets[index];
+    form.setValue('petName', selectedPet.name);
+    form.setValue('petGender', selectedPet.gender);
+    form.setValue('selectedPetIndex', index);
+    
+    if (selectedPet.birthDate) {
+      form.setValue('petBirthDate', selectedPet.birthDate);
+      
+      // Calculate pet age
+      const birthDate = new Date(selectedPet.birthDate);
+      const currentDate = new Date();
+      
+      let ageYears = currentDate.getFullYear() - birthDate.getFullYear();
+      const monthDifference = currentDate.getMonth() - birthDate.getMonth();
+      
+      if (monthDifference < 0 || (monthDifference === 0 && currentDate.getDate() < birthDate.getDate())) {
+        ageYears--;
+      }
+      
+      const ageMonths = (monthDifference < 0 ? 12 + monthDifference : monthDifference);
+      
+      let ageString = "";
+      if (ageYears > 0) {
+        ageString = `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
+      }
+      if (ageMonths > 0 || ageYears === 0) {
+        if (ageString) ageString += ", ";
+        ageString += `${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
+      }
+      
+      form.setValue('petAge', ageString);
+    }
+  };
+
+  const getPetTypeIcon = (type: string) => {
+    switch (type) {
+      case "dog":
+        return "🐕";
+      case "cat":
+        return "🐈";
+      case "bird":
+        return "🦜";
+      default:
+        return "🐾";
+    }
+  };
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -284,6 +317,33 @@ export function AppointmentForm() {
           {step === 1 && (
             <div className="space-y-4 animate-fade-in">
               <h2 className="text-xl font-medium mb-4">Personal Information</h2>
+              
+              {user?.userInfo.pets && user.userInfo.pets.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-md font-medium mb-3">Select from My Pets</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {user.userInfo.pets.map((pet, index) => (
+                      <div 
+                        key={index}
+                        onClick={() => handlePetSelection(index)}
+                        className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                          form.getValues('selectedPetIndex') === index 
+                            ? 'border-pet-blue-dark ring-1 ring-pet-blue bg-pet-blue/10' 
+                            : 'border-gray-200 hover:border-pet-blue/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl" role="img" aria-label={pet.type}>{getPetTypeIcon(pet.type)}</span>
+                          <div>
+                            <p className="font-medium">{pet.name}</p>
+                            <p className="text-xs text-muted-foreground capitalize">{pet.gender}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
@@ -443,7 +503,13 @@ export function AppointmentForm() {
                       id={service}
                       value={service}
                       checked={form.getValues("serviceType") === service}
-                      onChange={() => form.setValue("serviceType", service)}
+                      onChange={() => {
+                        form.setValue("serviceType", service);
+                        // Reset grooming package when switching away from grooming
+                        if (service !== "grooming") {
+                          form.setValue("groomingPackage", "");
+                        }
+                      }}
                       className="sr-only"
                     />
                     <label

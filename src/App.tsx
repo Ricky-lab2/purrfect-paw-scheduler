@@ -1,17 +1,23 @@
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "@/pages/Home";
-import About from "@/pages/About";
-import Contact from "@/pages/Contact";
-import Services from "@/pages/Services";
-import Appointment from "@/pages/Appointment";
-import Login from "@/pages/Login";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import Admin from "@/pages/Admin";
-import { FloatingChatbot } from "@/components/FloatingChatbot";
-import { AppointmentProvider } from "@/contexts/AppointmentContext";
+import Home from "./pages/Index";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Services from "./pages/Services";
+import Appointment from "./pages/Appointment";
+import Login from "./pages/Login";
+import { ThemeProvider } from "./components/ThemeProvider";
+import { Toaster } from "./components/ui/toaster";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import Admin from "./pages/admin/Dashboard";
+import { FloatingChatbot } from "./components/FloatingChatbot";
+import { AppointmentProvider } from "./contexts/AppointmentContext";
+import { Navbar } from "./components/Navbar"; 
+import { Footer } from "./components/Footer";
+import Profile from "./pages/Profile";
+import Pets from "./pages/Pets";
+import Appointments from "./pages/Appointments";
 
 function App() {
   return (
@@ -20,6 +26,7 @@ function App() {
         <AuthProvider>
           <AppointmentProvider>
             <Toaster />
+            <Navbar />
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
@@ -35,6 +42,30 @@ function App() {
                 }
               />
               <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pets"
+                element={
+                  <ProtectedRoute>
+                    <Pets />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/appointments"
+                element={
+                  <ProtectedRoute>
+                    <Appointments />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin"
                 element={
                   <ProtectedRoute requireAdmin>
@@ -43,6 +74,7 @@ function App() {
                 }
               />
             </Routes>
+            <Footer />
             <FloatingChatbot />
           </AppointmentProvider>
         </AuthProvider>
