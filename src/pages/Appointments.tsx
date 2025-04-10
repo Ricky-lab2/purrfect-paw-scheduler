@@ -1,34 +1,48 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAppointments, Appointment as AppointmentType } from "@/utils/localStorageDB";
+import { getAppointments, Appointment as AppointmentType, updateAppointmentStatus } from "@/utils/localStorageDB";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Info, AlertCircle } from "lucide-react";
+import { Calendar, Clock, Info, AlertCircle, Calendar as CalendarIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 const Appointments = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [appointments, setAppointments] = useState<AppointmentType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
+  const [appointmentToReschedule, setAppointmentToReschedule] = useState<AppointmentType | null>(null);
+  const [newDate, setNewDate] = useState<string>("");
+  const [newTimeSlot, setNewTimeSlot] = useState<string>("");
 
   useEffect(() => {
     if (user) {
-      setIsLoading(true);
-      try {
-        const allAppointments = getAppointments();
-        const userAppointments = allAppointments.filter(
-          appointment => appointment.email.toLowerCase() === user.userInfo.email.toLowerCase()
-        );
-        setAppointments(userAppointments);
-      } catch (error) {
-        console.error("Error fetching appointments:", error);
-      } finally {
-        setIsLoading(false);
-      }
+      loadAppointments();
     }
   }, [user]);
+
+  const loadAppointments = () => {
+    setIsLoading(true);
+    try {
+      const allAppointments = getAppointments();
+      const userAppointments = allAppointments.filter(
+        appointment => appointment.email.toLowerCase() === user?.userInfo.email.toLowerCase()
+      );
+      setAppointments(userAppointments);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -38,6 +52,8 @@ const Appointments = () => {
         return "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300";
       case "Pending":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300";
+      case "Rescheduled":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300";
       case "Cancelled":
         return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300";
       default:
@@ -59,6 +75,84 @@ const Appointments = () => {
         return <span className="text-orange-500">💊</span>;
       default:
         return <span className="text-gray-500">🐾</span>;
+    }
+  };
+
+  const openRescheduleDialog = (appointment: AppointmentType) => {
+    setAppointmentToReschedule(appointment);
+    setNewDate(appointment.date);
+    setNewTimeSlot(appointment.timeSlot);
+    setRescheduleDialogOpen(true);
+  };
+
+  const handleReschedule = () => {
+    if (!appointmentToReschedule || !newDate || !newTimeSlot) return;
+
+    try {
+      // Get all appointments to update the specific one
+      const allAppointments = getAppointments();
+      const appointmentIndex = allAppointments.findIndex(apt => apt.id === appointmentToReschedule.id);
+
+      if (appointmentIndex !== -1) {
+        // Create time string based on new timeSlot
+        let time: string;
+        switch (newTimeSlot) {
+          case "morning":
+            time = "9:00 AM";
+            break;
+          case "afternoon":
+            time = "1:00 PM";
+            break;
+          case "evening":
+            time = "5:00 PM";
+            break;
+          default:
+            time = "9:00 AM";
+        }
+
+        // Update the appointment
+        allAppointments[appointmentIndex] = {
+          ...allAppointments[appointmentIndex],
+          date: newDate,
+          timeSlot: newTimeSlot as "morning" | "afternoon" | "evening",
+          time: time,
+          status: "Rescheduled"
+        };
+
+        // Save back to localStorage
+        localStorage.setItem("appointments", JSON.stringify(allAppointments));
+
+        // Update local state
+        setAppointments(prev => {
+          const updatedAppointments = [...prev];
+          const localIndex = updatedAppointments.findIndex(apt => apt.id === appointmentToReschedule.id);
+          if (localIndex !== -1) {
+            updatedAppointments[localIndex] = {
+              ...updatedAppointments[localIndex],
+              date: newDate,
+              timeSlot: newTimeSlot as "morning" | "afternoon" | "evening",
+              time: time,
+              status: "Rescheduled"
+            };
+          }
+          return updatedAppointments;
+        });
+
+        toast({
+          title: "Appointment Rescheduled",
+          description: `Your appointment has been rescheduled to ${format(new Date(newDate), 'PPP')} (${newTimeSlot}).`,
+        });
+      }
+    } catch (error) {
+      console.error("Error rescheduling appointment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reschedule the appointment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setRescheduleDialogOpen(false);
+      setAppointmentToReschedule(null);
     }
   };
 
@@ -155,6 +249,16 @@ const Appointments = () => {
                     )}
                   </div>
                 </CardContent>
+                <CardFooter className="border-t pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => openRescheduleDialog(appointment)}
+                    disabled={appointment.status === "Completed" || appointment.status === "Cancelled"}
+                    className="ml-auto"
+                  >
+                    <CalendarIcon className="w-4 h-4 mr-2" /> Reschedule
+                  </Button>
+                </CardFooter>
               </Card>
             ))}
           </div>
@@ -171,6 +275,54 @@ const Appointments = () => {
           </div>
         )}
       </div>
+
+      <Dialog open={rescheduleDialogOpen} onOpenChange={setRescheduleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reschedule Appointment</DialogTitle>
+            <DialogDescription>
+              Choose a new date and time for your appointment.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">New Date</label>
+              <Input 
+                type="date" 
+                value={newDate} 
+                onChange={(e) => setNewDate(e.target.value)} 
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Preferred Time</label>
+              <Select value={newTimeSlot} onValueChange={setNewTimeSlot}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a time slot" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="morning">Morning (9:00 AM)</SelectItem>
+                  <SelectItem value="afternoon">Afternoon (1:00 PM)</SelectItem>
+                  <SelectItem value="evening">Evening (5:00 PM)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRescheduleDialogOpen(false)}>Cancel</Button>
+            <Button 
+              onClick={handleReschedule}
+              disabled={!newDate || !newTimeSlot}
+              className="bg-pet-blue-dark hover:bg-pet-blue-dark/90"
+            >
+              Confirm Reschedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

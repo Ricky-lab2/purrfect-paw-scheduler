@@ -1,11 +1,10 @@
-
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 
-// Define the pet type
+// Define the pet type with birthDate as required
 interface Pet {
   name: string;
   gender: "male" | "female";
-  birthDate?: string;
+  birthDate: string; // Now required, not optional
   age?: string;
   type: "dog" | "cat" | "bird" | "other";
 }
@@ -165,10 +164,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updatePet = (index: number, pet: Partial<Pet>) => {
     if (!user || !user.userInfo.pets) return;
     
+    // Make sure all required properties are provided when updating
     const updatedPets = [...user.userInfo.pets];
+    
+    // Create a properly typed updated pet object
+    const currentPet = updatedPets[index];
     updatedPets[index] = {
-      ...updatedPets[index],
-      ...pet
+      name: pet.name ?? currentPet.name,
+      gender: pet.gender ?? currentPet.gender,
+      birthDate: pet.birthDate ?? currentPet.birthDate,
+      type: pet.type ?? currentPet.type,
+      age: pet.age ?? currentPet.age
     };
     
     setUser({

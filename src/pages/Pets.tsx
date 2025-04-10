@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -19,7 +18,7 @@ const petFormSchema = z.object({
   gender: z.enum(["male", "female"], {
     required_error: "Please select a gender",
   }),
-  birthDate: z.string().optional(),
+  birthDate: z.string().min(1, { message: "Birth date is required" }),
   type: z.enum(["dog", "cat", "bird", "other"], {
     required_error: "Please select a pet type",
   }),
@@ -76,14 +75,12 @@ const Pets = () => {
 
   const onSubmit = (data: PetFormValues) => {
     if (editingPetIndex !== null) {
-      // The fix: Ensure all required properties are non-optional when updating a pet
-      const updatedPet = {
-        name: data.name, // This is required by Pet type
-        gender: data.gender, // This is required
-        birthDate: data.birthDate, // This is optional in Pet type
-        type: data.type // This is required
-      };
-      updatePet(editingPetIndex, updatedPet);
+      updatePet(editingPetIndex, {
+        name: data.name,
+        gender: data.gender,
+        birthDate: data.birthDate,
+        type: data.type
+      });
       toast({
         title: "Pet updated",
         description: `${data.name}'s information has been updated.`,
@@ -272,7 +269,7 @@ const Pets = () => {
                     name="birthDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Birth Date (Optional)</FormLabel>
+                        <FormLabel>Birth Date</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
