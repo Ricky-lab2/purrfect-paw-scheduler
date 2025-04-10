@@ -1,3 +1,4 @@
+
 // Function to generate a unique ID
 function generateId(): string {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -121,4 +122,78 @@ export function saveUser(userData: Omit<User, "id">): User {
   };
   localStorage.setItem("users", JSON.stringify([...users, newUser]));
   return newUser;
+}
+
+// Add the missing functions required by the Appointments component
+
+// Function to update appointment status
+export function updateAppointmentStatus(id: string, status: string): boolean {
+  const appointments = getAppointments();
+  const appointmentIndex = appointments.findIndex(app => app.id === id);
+  
+  if (appointmentIndex === -1) return false;
+  
+  appointments[appointmentIndex].status = status;
+  localStorage.setItem("appointments", JSON.stringify(appointments));
+  return true;
+}
+
+// Function to delete an appointment
+export function deleteAppointment(id: string): boolean {
+  const appointments = getAppointments();
+  const updatedAppointments = appointments.filter(app => app.id !== id);
+  
+  if (updatedAppointments.length === appointments.length) return false;
+  
+  localStorage.setItem("appointments", JSON.stringify(updatedAppointments));
+  return true;
+}
+
+// Function to seed initial data if none exists
+export function seedInitialData(): void {
+  const appointments = getAppointments();
+  
+  // Only seed data if no appointments exist
+  if (appointments.length === 0) {
+    const sampleAppointments: Appointment[] = [
+      {
+        id: "sample1",
+        petName: "Max",
+        ownerName: "John Doe",
+        petAge: "3 years",
+        petGender: "male",
+        email: "john@example.com",
+        phone: "09123456789",
+        service: "checkup",
+        date: new Date().toISOString().split('T')[0], // Today's date
+        time: "9:00 AM",
+        timeSlot: "morning",
+        additionalInfo: "Annual checkup",
+        isUrgent: false,
+        isFirstTime: false,
+        status: "Confirmed",
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: "sample2",
+        petName: "Buddy",
+        ownerName: "Jane Smith",
+        petAge: "2 years",
+        petGender: "male",
+        email: "jane@example.com",
+        phone: "09987654321",
+        service: "vaccination",
+        date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow's date
+        time: "1:00 PM",
+        timeSlot: "afternoon",
+        additionalInfo: "Rabies shot",
+        isUrgent: false,
+        isFirstTime: true,
+        status: "Pending",
+        createdAt: new Date().toISOString()
+      }
+    ];
+    
+    localStorage.setItem("appointments", JSON.stringify(sampleAppointments));
+  }
 }

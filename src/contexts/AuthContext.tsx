@@ -23,6 +23,8 @@ interface User {
   email: string;
   role: "admin" | "customer";
   userInfo: UserInfo;
+  // Add this property to fix the type errors
+  name: string;
 }
 
 interface AuthContextType {
@@ -47,7 +49,9 @@ const mockUsers = [
       name: "Admin User",
       email: "admin@example.com",
       phone: "09123456789",
-    }
+    },
+    // Add name property to match User interface
+    name: "Admin User"
   },
   {
     id: "customer1",
@@ -66,7 +70,9 @@ const mockUsers = [
           type: "dog" as const
         }
       ]
-    }
+    },
+    // Add name property to match User interface
+    name: "Customer User"
   }
 ];
 
@@ -122,13 +128,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUserInfo = (info: Partial<UserInfo>) => {
     if (!user) return;
     
-    setUser({
+    // Update both userInfo and the top-level name property
+    const updatedUser = {
       ...user,
       userInfo: {
         ...user.userInfo,
         ...info
       }
-    });
+    };
+    
+    // If name is being updated in userInfo, update the top-level name property as well
+    if (info.name) {
+      updatedUser.name = info.name;
+    }
+    
+    setUser(updatedUser);
   };
   
   const addPet = (pet: Pet) => {
