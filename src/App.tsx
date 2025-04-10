@@ -13,6 +13,8 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import Admin from "./pages/admin/Dashboard";
 import { FloatingChatbot } from "./components/FloatingChatbot";
 import { AppointmentProvider } from "./contexts/AppointmentContext";
+import { Navbar } from "./components/Navbar"; 
+import { Footer } from "./components/Footer";
 
 function App() {
   return (
@@ -21,6 +23,7 @@ function App() {
         <AuthProvider>
           <AppointmentProvider>
             <Toaster />
+            <Navbar />
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
@@ -44,6 +47,7 @@ function App() {
                 }
               />
             </Routes>
+            <Footer />
             <FloatingChatbot />
           </AppointmentProvider>
         </AuthProvider>
