@@ -1,10 +1,11 @@
+
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 
-// Define the pet type with birthDate as required
+// Define the pet type
 interface Pet {
   name: string;
   gender: "male" | "female";
-  birthDate: string; // Now required, not optional
+  birthDate?: string;
   age?: string;
   type: "dog" | "cat" | "bird" | "other";
 }
@@ -14,7 +15,6 @@ interface UserInfo {
   name: string;
   email: string;
   phone: string;
-  address?: string;
   pets?: Pet[];
 }
 
@@ -23,8 +23,6 @@ interface User {
   email: string;
   role: "admin" | "customer";
   userInfo: UserInfo;
-  // Add this property to fix the type errors
-  name: string;
 }
 
 interface AuthContextType {
@@ -49,10 +47,7 @@ const mockUsers = [
       name: "Admin User",
       email: "admin@example.com",
       phone: "09123456789",
-      address: "123 Admin Street, Manila"
-    },
-    // Add name property to match User interface
-    name: "Admin User"
+    }
   },
   {
     id: "customer1",
@@ -63,7 +58,6 @@ const mockUsers = [
       name: "Customer User",
       email: "customer@example.com",
       phone: "09987654321",
-      address: "456 Customer Avenue, Makati",
       pets: [
         {
           name: "Buddy",
@@ -72,9 +66,7 @@ const mockUsers = [
           type: "dog" as const
         }
       ]
-    },
-    // Add name property to match User interface
-    name: "Customer User"
+    }
   }
 ];
 
@@ -130,21 +122,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUserInfo = (info: Partial<UserInfo>) => {
     if (!user) return;
     
-    // Update both userInfo and the top-level name property
-    const updatedUser = {
+    setUser({
       ...user,
       userInfo: {
         ...user.userInfo,
         ...info
       }
-    };
-    
-    // If name is being updated in userInfo, update the top-level name property as well
-    if (info.name) {
-      updatedUser.name = info.name;
-    }
-    
-    setUser(updatedUser);
+    });
   };
   
   const addPet = (pet: Pet) => {
@@ -164,17 +148,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updatePet = (index: number, pet: Partial<Pet>) => {
     if (!user || !user.userInfo.pets) return;
     
-    // Make sure all required properties are provided when updating
     const updatedPets = [...user.userInfo.pets];
-    
-    // Create a properly typed updated pet object
-    const currentPet = updatedPets[index];
     updatedPets[index] = {
-      name: pet.name ?? currentPet.name,
-      gender: pet.gender ?? currentPet.gender,
-      birthDate: pet.birthDate ?? currentPet.birthDate,
-      type: pet.type ?? currentPet.type,
-      age: pet.age ?? currentPet.age
+      ...updatedPets[index],
+      ...pet
     };
     
     setUser({
