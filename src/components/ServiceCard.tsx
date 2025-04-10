@@ -1,7 +1,6 @@
 
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
-import { ReactNode } from "react";
 
 interface ServiceCardProps {
   title: string;
@@ -10,7 +9,6 @@ interface ServiceCardProps {
   priceRange?: string;
   className?: string;
   iconClassName?: string;
-  actions?: ReactNode;
 }
 
 export function ServiceCard({
@@ -20,7 +18,6 @@ export function ServiceCard({
   priceRange,
   className,
   iconClassName,
-  actions,
 }: ServiceCardProps) {
   return (
     <div className={cn("card-glass p-6 group", className)}>
@@ -43,8 +40,6 @@ export function ServiceCard({
           </span>
         </div>
       )}
-      
-      {actions && <div>{actions}</div>}
     </div>
   );
 }

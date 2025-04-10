@@ -1,199 +1,146 @@
 
-// Function to generate a unique ID
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-}
-
-// Define types for the data
-export type PetGender = "male" | "female";
-export type ServiceType = "checkup" | "vaccination" | "grooming" | "surgery" | "deworming";
-export type TimeSlot = "morning" | "afternoon" | "evening";
-
+// Types for our booking data
 export interface Appointment {
   id: string;
   petName: string;
   ownerName: string;
   petAge: string;
-  petGender: PetGender;
+  petGender: string;
   email: string;
   phone: string;
-  service: ServiceType;
+  service: string;
   date: string;
-  time: string;
-  timeSlot: TimeSlot;
-  additionalInfo: string;
-  isUrgent: boolean;
-  isFirstTime: boolean;
-  groomingPackage?: string;
-  status: string;
+  timeSlot: string;
+  time: string; // For display purposes
+  status: "Pending" | "Confirmed" | "Completed" | "Cancelled";
+  additionalInfo?: string;
+  isUrgent?: boolean;
+  isFirstTime?: boolean;
   createdAt: string;
 }
 
-export interface Pet {
-  id: string;
-  name: string;
-  birthDate: string;
-  gender: PetGender;
-  breed: string;
-  ownerId: string;
-}
+// Generate a simple ID
+export const generateId = (): string => {
+  return `APT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+};
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  isAdmin: boolean;
-  pets: Pet[];
-}
-
-// Function to get appointments from local storage
-export function getAppointments(): Appointment[] {
-  const appointments = localStorage.getItem("appointments");
-  return appointments ? JSON.parse(appointments) : [];
-}
-
-// Function to get pets from local storage
-export function getPets(): Pet[] {
-  const pets = localStorage.getItem("pets");
-  return pets ? JSON.parse(pets) : [];
-}
-
-// Function to get users from local storage
-export function getUsers(): User[] {
-  const users = localStorage.getItem("users");
-  return users ? JSON.parse(users) : [];
-}
-
-export function saveAppointment(appointmentData: Omit<Appointment, "id" | "status" | "time" | "createdAt" | "groomingPackage"> & { groomingPackage?: string }): Appointment {
-  // Get existing appointments
-  const appointments = getAppointments();
-
-  // Create a formatted time string based on the timeSlot
-  let time: string;
-  switch (appointmentData.timeSlot) {
-    case "morning":
-      time = "9:00 AM";
-      break;
-    case "afternoon":
-      time = "1:00 PM";
-      break;
-    case "evening":
-      time = "5:00 PM";
-      break;
-    default:
-      time = "9:00 AM";
+// Get all appointments
+export const getAppointments = (): Appointment[] => {
+  try {
+    const appointments = localStorage.getItem('appointments');
+    return appointments ? JSON.parse(appointments) : [];
+  } catch (error) {
+    console.error('Error getting appointments:', error);
+    return [];
   }
+};
 
-  // Create new appointment with generated ID and defaults
-  const newAppointment: Appointment = {
-    ...appointmentData,
-    id: generateId(),
-    status: "Pending",
-    time,
-    createdAt: new Date().toISOString(),
-    groomingPackage: appointmentData.groomingPackage || undefined,
-  };
+// Save an appointment
+export const saveAppointment = (appointment: Omit<Appointment, 'id' | 'status' | 'time' | 'createdAt'>): Appointment => {
+  try {
+    const appointments = getAppointments();
+    
+    // Map timeSlot to display time
+    const timeMap: Record<string, string> = {
+      morning: '9:00 AM',
+      afternoon: '1:00 PM',
+      evening: '5:00 PM'
+    };
+    
+    const newAppointment: Appointment = {
+      ...appointment,
+      id: generateId(),
+      status: 'Pending',
+      time: timeMap[appointment.timeSlot as keyof typeof timeMap] || '9:00 AM',
+      createdAt: new Date().toISOString()
+    };
+    
+    appointments.push(newAppointment);
+    localStorage.setItem('appointments', JSON.stringify(appointments));
+    
+    return newAppointment;
+  } catch (error) {
+    console.error('Error saving appointment:', error);
+    throw error;
+  }
+};
 
-  // Save to localStorage
-  localStorage.setItem("appointments", JSON.stringify([...appointments, newAppointment]));
+// Update an appointment status
+export const updateAppointmentStatus = (id: string, status: Appointment['status']): boolean => {
+  try {
+    const appointments = getAppointments();
+    const index = appointments.findIndex(apt => apt.id === id);
+    
+    if (index !== -1) {
+      appointments[index].status = status;
+      localStorage.setItem('appointments', JSON.stringify(appointments));
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error updating appointment status:', error);
+    return false;
+  }
+};
 
-  return newAppointment;
-}
+// Delete an appointment
+export const deleteAppointment = (id: string): boolean => {
+  try {
+    const appointments = getAppointments();
+    const filteredAppointments = appointments.filter(apt => apt.id !== id);
+    
+    if (filteredAppointments.length !== appointments.length) {
+      localStorage.setItem('appointments', JSON.stringify(filteredAppointments));
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error deleting appointment:', error);
+    return false;
+  }
+};
 
-// Function to save a pet to local storage
-export function savePet(petData: Omit<Pet, "id">): Pet {
-  const pets = getPets();
-  const newPet: Pet = {
-    ...petData,
-    id: generateId(),
-  };
-  localStorage.setItem("pets", JSON.stringify([...pets, newPet]));
-  return newPet;
-}
-
-// Function to save a user to local storage
-export function saveUser(userData: Omit<User, "id">): User {
-  const users = getUsers();
-  const newUser: User = {
-    ...userData,
-    id: generateId(),
-  };
-  localStorage.setItem("users", JSON.stringify([...users, newUser]));
-  return newUser;
-}
-
-// Add the missing functions required by the Appointments component
-
-// Function to update appointment status
-export function updateAppointmentStatus(id: string, status: string): boolean {
-  const appointments = getAppointments();
-  const appointmentIndex = appointments.findIndex(app => app.id === id);
-  
-  if (appointmentIndex === -1) return false;
-  
-  appointments[appointmentIndex].status = status;
-  localStorage.setItem("appointments", JSON.stringify(appointments));
-  return true;
-}
-
-// Function to delete an appointment
-export function deleteAppointment(id: string): boolean {
-  const appointments = getAppointments();
-  const updatedAppointments = appointments.filter(app => app.id !== id);
-  
-  if (updatedAppointments.length === appointments.length) return false;
-  
-  localStorage.setItem("appointments", JSON.stringify(updatedAppointments));
-  return true;
-}
-
-// Function to seed initial data if none exists
-export function seedInitialData(): void {
-  const appointments = getAppointments();
-  
-  // Only seed data if no appointments exist
-  if (appointments.length === 0) {
-    const sampleAppointments: Appointment[] = [
+// Seed some initial appointment data if none exists
+export const seedInitialData = (): void => {
+  if (getAppointments().length === 0) {
+    const sampleAppointments: Omit<Appointment, 'id' | 'status' | 'time' | 'createdAt'>[] = [
       {
-        id: "sample1",
         petName: "Max",
         ownerName: "John Doe",
         petAge: "3 years",
         petGender: "male",
         email: "john@example.com",
-        phone: "09123456789",
+        phone: "555-1234",
         service: "checkup",
-        date: new Date().toISOString().split('T')[0], // Today's date
-        time: "9:00 AM",
+        date: "2025-04-06",
         timeSlot: "morning",
-        additionalInfo: "Annual checkup",
-        isUrgent: false,
-        isFirstTime: false,
-        status: "Confirmed",
-        createdAt: new Date().toISOString()
+        additionalInfo: "Annual checkup"
       },
       {
-        id: "sample2",
-        petName: "Buddy",
-        ownerName: "Jane Smith",
+        petName: "Luna",
+        ownerName: "Sarah Johnson",
         petAge: "2 years",
-        petGender: "male",
-        email: "jane@example.com",
-        phone: "09987654321",
+        petGender: "female",
+        email: "sarah@example.com",
+        phone: "555-5678",
         service: "vaccination",
-        date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow's date
-        time: "1:00 PM",
+        date: "2025-04-06",
         timeSlot: "afternoon",
-        additionalInfo: "Rabies shot",
-        isUrgent: false,
-        isFirstTime: true,
-        status: "Pending",
-        createdAt: new Date().toISOString()
+        isFirstTime: true
+      },
+      {
+        petName: "Charlie",
+        ownerName: "Michael Smith",
+        petAge: "5 years",
+        petGender: "male",
+        email: "michael@example.com",
+        phone: "555-9012",
+        service: "grooming",
+        date: "2025-04-07",
+        timeSlot: "evening"
       }
     ];
     
-    localStorage.setItem("appointments", JSON.stringify(sampleAppointments));
+    sampleAppointments.forEach(apt => saveAppointment(apt));
   }
-}
+};

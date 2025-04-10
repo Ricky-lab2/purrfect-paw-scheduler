@@ -20,7 +20,7 @@ const Login = () => {
   const location = useLocation();
   const { toast } = useToast();
   
-  // Get the intended destination from location state, or use home page as default
+  // Get the intended destination from location state, or use defaults based on role
   const from = location.state?.from?.pathname || "/";
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,12 +36,12 @@ const Login = () => {
           description: `Welcome back! You are logged in as ${role}.`,
         });
         
-        // Always redirect to home page first after login
+        // Redirect based on role
         if (role === "admin") {
           navigate("/admin");
         } else {
-          // For customers, always go to home page first
-          navigate("/");
+          // For customers, either redirect to the page they came from or to home
+          navigate(from === "/admin" ? "/" : from);
         }
       } else {
         toast({
