@@ -6,7 +6,7 @@ import Contact from "./pages/Contact";
 import Services from "./pages/Services";
 import Appointment from "./pages/Appointment";
 import Login from "./pages/Login";
-import { ThemeProvider } from "./components/theme-provider";
+import { ThemeProvider } from "./components/ThemeProvider";
 import { Toaster } from "./components/ui/toaster";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
