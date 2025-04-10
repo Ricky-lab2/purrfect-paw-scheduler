@@ -1,24 +1,21 @@
 
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
-  redirectTo?: string;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requireAdmin = false,
-  redirectTo = "/login"
+  requireAdmin = false 
 }) => {
   const { isAuthenticated, isAdmin } = useAuth();
-  const location = useLocation();
   
   if (!isAuthenticated) {
-    // User is not logged in, redirect to login while preserving the intended destination
-    return <Navigate to={redirectTo} state={{ from: location }} replace />;
+    // User is not logged in, redirect to login
+    return <Navigate to="/login" replace />;
   }
   
   if (requireAdmin && !isAdmin) {

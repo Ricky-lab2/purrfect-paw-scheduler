@@ -1,25 +1,10 @@
 
 import { Bell, Search, Settings, User, LogOut } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
 
 export function AdminHeader() {
   const [searchQuery, setSearchQuery] = useState("");
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  
-  const handleLogout = () => {
-    logout();
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
-    navigate("/login");
-  };
   
   return (
     <header className="bg-white border-b border-gray-200 shadow-sm p-4">
@@ -77,14 +62,14 @@ export function AdminHeader() {
             <PopoverTrigger asChild>
               <button className="flex items-center gap-2 p-2 rounded-full hover:bg-gray-100">
                 <div className="h-8 w-8 rounded-full bg-pet-blue-dark flex items-center justify-center text-white">
-                  {user?.name.charAt(0) || "A"}
+                  <User size={16} />
                 </div>
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-64 p-0">
               <div className="p-3 border-b">
-                <p className="font-medium">{user?.name || "Admin User"}</p>
-                <p className="text-xs text-muted-foreground">{user?.email || "admin@example.com"}</p>
+                <p className="font-medium">Admin User</p>
+                <p className="text-xs text-muted-foreground">admin@purrfectpaw.com</p>
               </div>
               <div className="p-2">
                 <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md flex items-center gap-2">
@@ -96,10 +81,7 @@ export function AdminHeader() {
                   <span>Settings</span>
                 </button>
                 <div className="border-t border-gray-100 my-1"></div>
-                <button 
-                  onClick={handleLogout}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md flex items-center gap-2 text-red-500"
-                >
+                <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md flex items-center gap-2 text-red-500">
                   <LogOut size={16} />
                   <span>Sign Out</span>
                 </button>

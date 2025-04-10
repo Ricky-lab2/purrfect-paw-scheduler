@@ -1,5 +1,5 @@
 
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -8,23 +8,8 @@ import {
   Settings,
   LogOut
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
 
 export function AdminSidebar() {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  
-  const handleLogout = () => {
-    logout();
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
-    navigate("/login");
-  };
-  
   const navItems = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Appointments", href: "/admin/appointments", icon: Calendar },
@@ -64,10 +49,7 @@ export function AdminSidebar() {
       </nav>
       
       <div className="p-4 border-t border-white/10">
-        <button 
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2 rounded-md w-full hover:bg-white/5 text-white/80 transition-colors"
-        >
+        <button className="flex items-center gap-3 px-3 py-2 rounded-md w-full hover:bg-white/5 text-white/80 transition-colors">
           <LogOut size={18} />
           <span>Logout</span>
         </button>

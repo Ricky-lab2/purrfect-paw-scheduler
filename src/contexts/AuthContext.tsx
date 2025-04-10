@@ -1,181 +1,88 @@
 
-import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from "react";
 
-// Define the pet type
-interface Pet {
-  name: string;
-  gender: "male" | "female";
-  birthDate?: string;
-  age?: string;
-  type: "dog" | "cat" | "bird" | "other";
-}
-
-// Define the user types
-interface UserInfo {
-  name: string;
-  email: string;
-  phone: string;
-  pets?: Pet[];
-}
-
-interface User {
+type User = {
   id: string;
+  name: string;
   email: string;
   role: "admin" | "customer";
-  userInfo: UserInfo;
-}
+};
 
-interface AuthContextType {
-  isAuthenticated: boolean;
-  isAdmin: boolean;
+type AuthContextType = {
   user: User | null;
   login: (email: string, password: string, role: "admin" | "customer") => Promise<boolean>;
   logout: () => void;
-  updateUserInfo: (info: Partial<UserInfo>) => void;
-  addPet: (pet: Pet) => void;
-  updatePet: (index: number, pet: Partial<Pet>) => void;
-}
-
-// Mock users for demonstration
-const mockUsers = [
-  {
-    id: "admin1",
-    email: "admin@example.com",
-    password: "admin123",
-    role: "admin" as const,
-    userInfo: {
-      name: "Admin User",
-      email: "admin@example.com",
-      phone: "09123456789",
-    }
-  },
-  {
-    id: "customer1",
-    email: "customer@example.com",
-    password: "customer123",
-    role: "customer" as const,
-    userInfo: {
-      name: "Customer User",
-      email: "customer@example.com",
-      phone: "09987654321",
-      pets: [
-        {
-          name: "Buddy",
-          gender: "male" as const,
-          birthDate: "2022-03-15",
-          type: "dog" as const
-        }
-      ]
-    }
-  }
-];
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   
-  // On initial load, check for stored user
+  // Load user from localStorage on initial render
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error('Error parsing stored user:', e);
-        localStorage.removeItem('user');
-      }
+      setUser(JSON.parse(storedUser));
     }
   }, []);
-  
-  // Save user to local storage whenever it changes
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('user');
-    }
-  }, [user]);
-  
+
   const login = async (email: string, password: string, role: "admin" | "customer"): Promise<boolean> => {
-    // Find user with matching email and password
-    const foundUser = mockUsers.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && 
-             u.password === password &&
-             u.role === role
-    );
+    // This is a mock authentication
+    // In a real app, you would validate against a backend
     
-    if (foundUser) {
-      // Create a copy without the password
-      const { password, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword as User);
+    // Simple validation
+    if (!email || !password) {
+      return false;
+    }
+    
+    // Mock users - in a real app, this would come from a backend
+    const mockAdminCredentials = { email: "admin@example.com", password: "admin123" };
+    const mockCustomerCredentials = { email: "customer@example.com", password: "customer123" };
+    
+    let isValid = false;
+    let userData: User | null = null;
+    
+    if (role === "admin" && email === mockAdminCredentials.email && password === mockAdminCredentials.password) {
+      isValid = true;
+      userData = {
+        id: "admin-1",
+        name: "Admin User",
+        email: mockAdminCredentials.email,
+        role: "admin"
+      };
+    } else if (role === "customer" && email === mockCustomerCredentials.email && password === mockCustomerCredentials.password) {
+      isValid = true;
+      userData = {
+        id: "customer-1",
+        name: "John Doe",
+        email: mockCustomerCredentials.email,
+        role: "customer"
+      };
+    }
+    
+    if (isValid && userData) {
+      // Store in localStorage
+      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
       return true;
     }
     
     return false;
   };
-  
+
   const logout = () => {
+    localStorage.removeItem("user");
     setUser(null);
   };
-  
-  const updateUserInfo = (info: Partial<UserInfo>) => {
-    if (!user) return;
-    
-    setUser({
-      ...user,
-      userInfo: {
-        ...user.userInfo,
-        ...info
-      }
-    });
-  };
-  
-  const addPet = (pet: Pet) => {
-    if (!user) return;
-    
-    const updatedPets = user.userInfo.pets ? [...user.userInfo.pets, pet] : [pet];
-    
-    setUser({
-      ...user,
-      userInfo: {
-        ...user.userInfo,
-        pets: updatedPets
-      }
-    });
-  };
-  
-  const updatePet = (index: number, pet: Partial<Pet>) => {
-    if (!user || !user.userInfo.pets) return;
-    
-    const updatedPets = [...user.userInfo.pets];
-    updatedPets[index] = {
-      ...updatedPets[index],
-      ...pet
-    };
-    
-    setUser({
-      ...user,
-      userInfo: {
-        ...user.userInfo,
-        pets: updatedPets
-      }
-    });
-  };
-  
+
+  const isAuthenticated = user !== null;
+  const isAdmin = user?.role === "admin";
+
   return (
-    <AuthContext.Provider 
-      value={{ 
-        isAuthenticated: !!user, 
-        isAdmin: user?.role === 'admin',
-        user,
-        login,
-        logout,
-        updateUserInfo,
-        addPet,
-        updatePet
-      }}
-    >
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );
@@ -184,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

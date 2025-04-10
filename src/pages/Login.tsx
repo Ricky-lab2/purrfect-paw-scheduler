@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,11 +17,7 @@ const Login = () => {
   
   const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
-  
-  // Get the intended destination from location state, or use defaults based on role
-  const from = location.state?.from?.pathname || "/";
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +36,7 @@ const Login = () => {
         if (role === "admin") {
           navigate("/admin");
         } else {
-          // For customers, either redirect to the page they came from or to home
-          navigate(from === "/admin" ? "/" : from);
+          navigate("/");
         }
       } else {
         toast({
