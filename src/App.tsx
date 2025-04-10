@@ -1,17 +1,18 @@
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "@/pages/Home";
-import About from "@/pages/About";
-import Contact from "@/pages/Contact";
-import Services from "@/pages/Services";
-import Appointment from "@/pages/Appointment";
-import Login from "@/pages/Login";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import Admin from "@/pages/Admin";
-import { FloatingChatbot } from "@/components/FloatingChatbot";
-import { AppointmentProvider } from "@/contexts/AppointmentContext";
+import Home from "./pages/Index";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Services from "./pages/Services";
+import Appointment from "./pages/Appointment";
+import Login from "./pages/Login";
+import { ThemeProvider } from "./components/theme-provider";
+import { Toaster } from "./components/ui/toaster";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import Admin from "./pages/admin/Dashboard";
+import { FloatingChatbot } from "./components/FloatingChatbot";
+import { AppointmentProvider } from "./contexts/AppointmentContext";
 
 function App() {
   return (
