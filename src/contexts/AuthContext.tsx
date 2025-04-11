@@ -8,11 +8,26 @@ type User = {
   role: "admin" | "customer";
 };
 
+type Pet = {
+  id: string;
+  name: string;
+  type: "dog" | "cat" | "bird" | "other";
+  breed?: string;
+  birthDate: string;
+  gender: "male" | "female";
+  ownerId: string;
+};
+
 type AuthContextType = {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateUserProfile: (updates: Partial<User>) => void;
+  getUserPets: () => Pet[];
+  addPet: (pet: Omit<Pet, 'id' | 'ownerId'>) => Pet;
+  updatePet: (id: string, updates: Partial<Omit<Pet, 'id' | 'ownerId'>>) => boolean;
+  deletePet: (id: string) => boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
 };
@@ -135,11 +150,104 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  // Update user profile
+  const updateUserProfile = (updates: Partial<User>) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, ...updates };
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+
+    // If this is a registered user (not a mock user), update in registeredUsers as well
+    if (user.id.startsWith('customer-') && user.id !== 'customer-1') {
+      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
+      const userIndex = registeredUsers.findIndex((u: any) => u.id === user.id);
+      
+      if (userIndex !== -1) {
+        registeredUsers[userIndex] = { 
+          ...registeredUsers[userIndex], 
+          ...updates,
+          // Don't override the password if it's not provided in the updates
+          password: registeredUsers[userIndex].password 
+        };
+        localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers));
+      }
+    }
+    
+    setUser(updatedUser);
+  };
+
+  // Pet management functions
+  const getUserPets = (): Pet[] => {
+    if (!user) return [];
+    
+    const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
+    return allPets.filter((pet: Pet) => pet.ownerId === user.id);
+  };
+
+  const addPet = (pet: Omit<Pet, 'id' | 'ownerId'>): Pet => {
+    if (!user) throw new Error("User not authenticated");
+    
+    const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
+    const newPet: Pet = {
+      ...pet,
+      id: `pet-${Date.now()}`,
+      ownerId: user.id,
+    };
+    
+    allPets.push(newPet);
+    localStorage.setItem("pets", JSON.stringify(allPets));
+    
+    return newPet;
+  };
+
+  const updatePet = (id: string, updates: Partial<Omit<Pet, 'id' | 'ownerId'>>): boolean => {
+    if (!user) return false;
+    
+    const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
+    const petIndex = allPets.findIndex((p: Pet) => p.id === id && p.ownerId === user.id);
+    
+    if (petIndex !== -1) {
+      allPets[petIndex] = { ...allPets[petIndex], ...updates };
+      localStorage.setItem("pets", JSON.stringify(allPets));
+      return true;
+    }
+    
+    return false;
+  };
+
+  const deletePet = (id: string): boolean => {
+    if (!user) return false;
+    
+    const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
+    const filteredPets = allPets.filter((p: Pet) => !(p.id === id && p.ownerId === user.id));
+    
+    if (filteredPets.length !== allPets.length) {
+      localStorage.setItem("pets", JSON.stringify(filteredPets));
+      return true;
+    }
+    
+    return false;
+  };
+
   const isAuthenticated = user !== null;
   const isAdmin = user?.role === "admin";
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isAuthenticated, isAdmin }}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        login, 
+        signup, 
+        logout,
+        updateUserProfile,
+        getUserPets,
+        addPet,
+        updatePet,
+        deletePet, 
+        isAuthenticated, 
+        isAdmin 
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

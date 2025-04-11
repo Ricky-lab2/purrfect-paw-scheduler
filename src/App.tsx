@@ -11,6 +11,10 @@ import { FloatingChatbot } from "@/components/FloatingChatbot";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { initializeData } from "@/utils/seedData";
+
+// Initialize the data
+initializeData();
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -20,6 +24,9 @@ const FAQ = lazy(() => import("./pages/FAQ"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
+const Profile = lazy(() => import("./pages/Profile"));
+const UserPets = lazy(() => import("./pages/UserPets"));
+const UserAppointments = lazy(() => import("./pages/UserAppointments"));
 
 // Admin Pages
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
@@ -75,10 +82,31 @@ const App = () => (
                     {/* Public Routes */}
                     <Route path="/" element={<Index />} />
                     <Route path="/services" element={<Services />} />
-                    <Route path="/appointment" element={<Appointment />} />
                     <Route path="/faq" element={<FAQ />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
+                    
+                    {/* Protected Customer Routes */}
+                    <Route path="/appointment" element={
+                      <ProtectedRoute>
+                        <Appointment />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/profile" element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/my-pets" element={
+                      <ProtectedRoute>
+                        <UserPets />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/my-appointments" element={
+                      <ProtectedRoute>
+                        <UserAppointments />
+                      </ProtectedRoute>
+                    } />
                     
                     {/* Protected Admin Routes */}
                     <Route path="/admin" element={
