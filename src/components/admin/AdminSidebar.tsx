@@ -6,15 +6,22 @@ import {
   Users, 
   PawPrint, 
   Settings,
-  LogOut
+  LogOut,
+  FileText,
+  UserPlus
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AdminSidebar() {
+  const { logout } = useAuth();
+
   const navItems = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Appointments", href: "/admin/appointments", icon: Calendar },
+    { name: "Booking Records", href: "/admin/booking-records", icon: FileText },
     { name: "Pets", href: "/admin/pets", icon: PawPrint },
     { name: "Users", href: "/admin/users", icon: Users },
+    { name: "Signups", href: "/admin/signups", icon: UserPlus },
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ];
 
@@ -49,7 +56,10 @@ export function AdminSidebar() {
       </nav>
       
       <div className="p-4 border-t border-white/10">
-        <button className="flex items-center gap-3 px-3 py-2 rounded-md w-full hover:bg-white/5 text-white/80 transition-colors">
+        <button 
+          onClick={logout}
+          className="flex items-center gap-3 px-3 py-2 rounded-md w-full hover:bg-white/5 text-white/80 transition-colors"
+        >
           <LogOut size={18} />
           <span>Logout</span>
         </button>

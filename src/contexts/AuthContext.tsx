@@ -10,7 +10,8 @@ type User = {
 
 type AuthContextType = {
   user: User | null;
-  login: (email: string, password: string, role: "admin" | "customer") => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -29,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (email: string, password: string, role: "admin" | "customer"): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     // This is a mock authentication
     // In a real app, you would validate against a backend
     
@@ -45,7 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isValid = false;
     let userData: User | null = null;
     
-    if (role === "admin" && email === mockAdminCredentials.email && password === mockAdminCredentials.password) {
+    if (email === mockAdminCredentials.email && password === mockAdminCredentials.password) {
       isValid = true;
       userData = {
         id: "admin-1",
@@ -53,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: mockAdminCredentials.email,
         role: "admin"
       };
-    } else if (role === "customer" && email === mockCustomerCredentials.email && password === mockCustomerCredentials.password) {
+    } else if (email === mockCustomerCredentials.email && password === mockCustomerCredentials.password) {
       isValid = true;
       userData = {
         id: "customer-1",
@@ -61,6 +62,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: mockCustomerCredentials.email,
         role: "customer"
       };
+    }
+    
+    // Also check registered users in localStorage
+    if (!isValid) {
+      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
+      const foundUser = registeredUsers.find(
+        (u: any) => u.email === email && u.password === password
+      );
+      
+      if (foundUser) {
+        isValid = true;
+        userData = {
+          id: foundUser.id,
+          name: foundUser.name,
+          email: foundUser.email,
+          role: "customer" // All registered users are customers
+        };
+      }
     }
     
     if (isValid && userData) {
@@ -73,6 +92,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
+  const signup = async (name: string, email: string, password: string): Promise<boolean> => {
+    // Simple validation
+    if (!name || !email || !password) {
+      return false;
+    }
+    
+    // Check if email already exists in the predefined accounts
+    if (
+      email === "admin@example.com" || 
+      email === "customer@example.com"
+    ) {
+      return false;
+    }
+    
+    // Get existing registered users
+    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
+    
+    // Check if email already exists in registered users
+    if (registeredUsers.some((user: any) => user.email === email)) {
+      return false;
+    }
+    
+    // Create new user
+    const newUser = {
+      id: `customer-${Date.now()}`,
+      name,
+      email,
+      password, // In a real app, this should be hashed
+      role: "customer"
+    };
+    
+    // Add to registered users
+    registeredUsers.push(newUser);
+    localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers));
+    
+    return true;
+  };
+
   const logout = () => {
     localStorage.removeItem("user");
     setUser(null);
@@ -82,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAdmin = user?.role === "admin";
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, isAdmin }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, isAuthenticated, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,13 +3,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FloatingChatbot } from "@/components/FloatingChatbot";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Lazy load pages for better performance
@@ -19,6 +19,7 @@ const Appointment = lazy(() => import("./pages/Appointment"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
 
 // Admin Pages
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
@@ -26,6 +27,30 @@ const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
 const AdminAppointments = lazy(() => import("./pages/admin/Appointments"));
 const AdminPets = lazy(() => import("./pages/admin/Pets"));
 const AdminUsers = lazy(() => import("./pages/admin/Users"));
+const BookingRecords = lazy(() => import("./pages/admin/BookingRecords"));
+const SignupsPage = lazy(() => import("./pages/admin/Signups"));
+
+// Redirect component based on auth status
+const AuthRedirect = () => {
+  const { isAuthenticated, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      // If user is authenticated and on login/signup page, redirect appropriately
+      if (['/login', '/signup'].includes(location.pathname)) {
+        if (isAdmin) {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
+      }
+    }
+  }, [isAuthenticated, isAdmin, navigate, location.pathname]);
+
+  return null;
+};
 
 const queryClient = new QueryClient();
 
@@ -37,6 +62,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <AuthRedirect />
             <div className="min-h-screen flex flex-col">
               <Navbar />
               <main className="flex-grow">
@@ -52,6 +78,7 @@ const App = () => (
                     <Route path="/appointment" element={<Appointment />} />
                     <Route path="/faq" element={<FAQ />} />
                     <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
                     
                     {/* Protected Admin Routes */}
                     <Route path="/admin" element={
@@ -61,8 +88,10 @@ const App = () => (
                     }>
                       <Route index element={<AdminDashboard />} />
                       <Route path="appointments" element={<AdminAppointments />} />
+                      <Route path="booking-records" element={<BookingRecords />} />
                       <Route path="pets" element={<AdminPets />} />
                       <Route path="users" element={<AdminUsers />} />
+                      <Route path="signups" element={<SignupsPage />} />
                     </Route>
                     
                     <Route path="*" element={<NotFound />} />
