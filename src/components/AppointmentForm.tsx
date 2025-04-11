@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Check, Calendar, Clock, ChevronDown, User, PawPrint } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -153,21 +152,7 @@ export function AppointmentForm() {
         description: `Your appointment ID is ${appointment.id}. We'll send you a confirmation email shortly.`,
       });
       
-      setFormData({
-        name: "",
-        petName: "",
-        petAge: "",
-        petGender: "" as PetGender,
-        email: "",
-        phone: "",
-        serviceType: "" as ServiceType,
-        date: "",
-        timeSlot: "" as TimeSlot,
-        isUrgent: false,
-        isFirstTime: false,
-        additionalInfo: "",
-      });
-      setStep(1);
+      navigate("/user/appointments");
       
     } catch (error) {
       toast({
@@ -265,16 +250,20 @@ export function AppointmentForm() {
                     </SelectTrigger>
                     <SelectContent>
                       {userPets.map(pet => (
-                        <SelectItem key={pet.id} value={pet.id}>
+                        <SelectItem key={pet.id} value={pet.id} className="flex items-center gap-2">
+                          <span className="mr-2 text-xl">{pet.type === "dog" ? "🐕" : pet.type === "cat" ? "🐈" : pet.type === "bird" ? "🦜" : "🐾"}</span>
                           {pet.name} ({pet.type})
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Selecting a pet will automatically fill in your pet's information.
-                </p>
+                {selectedPet && (
+                  <div className="mt-2 p-2 bg-blue-100 rounded text-sm flex items-center gap-2">
+                    <Check className="h-4 w-4 text-blue-600" />
+                    Pet information has been automatically filled
+                  </div>
+                )}
               </div>
             )}
             
@@ -306,6 +295,7 @@ export function AppointmentForm() {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
                   required
+                  readOnly={!!selectedPet}
                 />
               </div>
             </div>
@@ -344,6 +334,7 @@ export function AppointmentForm() {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
                   required
+                  disabled={!!selectedPet}
                 >
                   <option value="">Select Gender</option>
                   <option value="male">Male</option>

@@ -4,20 +4,31 @@ import { AppointmentForm } from "@/components/AppointmentForm";
 import { CheckCircle2, Search } from "lucide-react";
 import { getAppointments, Appointment as AppointmentType } from "@/utils/localStorageDB";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { Navigate } from "react-router-dom";
 
 const Appointment = () => {
   const [userEmail, setUserEmail] = useState("");
   const [userAppointments, setUserAppointments] = useState<AppointmentType[]>([]);
   const [isChecking, setIsChecking] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const { toast } = useToast();
   
-  const checkAppointments = () => {
-    if (!userEmail) return;
+  // Automatically set the email from the authenticated user
+  useEffect(() => {
+    if (isAuthenticated && user?.email) {
+      setUserEmail(user.email);
+      checkAppointments(user.email);
+    }
+  }, [isAuthenticated, user]);
+  
+  const checkAppointments = (email: string = userEmail) => {
+    if (!email) return;
     
     setIsChecking(true);
     try {
       const appointments = getAppointments().filter(
-        apt => apt.email.toLowerCase() === userEmail.toLowerCase()
+        apt => apt.email.toLowerCase() === email.toLowerCase()
       );
       setUserAppointments(appointments);
     } catch (error) {
@@ -36,6 +47,17 @@ const Appointment = () => {
       default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
     }
   };
+  
+  // Redirect to login if user is not authenticated
+  if (!isAuthenticated) {
+    toast({
+      title: "Authentication required",
+      description: "Please login to book an appointment",
+      variant: "destructive",
+    });
+    
+    return <Navigate to="/login" replace />;
+  }
   
   return (
     <div className="min-h-screen pt-20">
@@ -61,35 +83,15 @@ const Appointment = () => {
           <div className="space-y-6">
             {/* Check Existing Appointments */}
             <div className="card-glass p-6">
-              <h3 className="text-xl font-medium mb-4">Check Your Appointments</h3>
+              <h3 className="text-xl font-medium mb-4">Your Appointments</h3>
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Enter your email to check the status of your existing appointments.
+                  Here's a quick view of your recent appointments.
                 </p>
                 
-                <div className="flex gap-2">
-                  <div className="relative flex-grow">
-                    <input
-                      type="email"
-                      placeholder="Your email address"
-                      value={userEmail}
-                      onChange={(e) => setUserEmail(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
-                    />
-                  </div>
-                  <button
-                    onClick={checkAppointments}
-                    disabled={isChecking || !userEmail}
-                    className="px-4 py-2 bg-pet-blue-dark text-white rounded-lg hover:bg-pet-blue-dark/90 transition-colors disabled:opacity-50"
-                  >
-                    <Search className="h-4 w-4" />
-                  </button>
-                </div>
-                
-                {userAppointments.length > 0 && (
+                {userAppointments.length > 0 ? (
                   <div className="space-y-3 mt-4">
-                    <h4 className="text-sm font-medium">Your Appointments</h4>
-                    {userAppointments.map((apt) => (
+                    {userAppointments.slice(0, 3).map((apt) => (
                       <div key={apt.id} className="p-3 border rounded-lg">
                         <div className="flex justify-between items-start">
                           <div>
@@ -104,11 +106,17 @@ const Appointment = () => {
                         </div>
                       </div>
                     ))}
+                    
+                    {userAppointments.length > 3 && (
+                      <div className="text-center mt-2">
+                        <a href="/user/appointments" className="text-sm text-pet-blue-dark hover:underline">
+                          View all appointments →
+                        </a>
+                      </div>
+                    )}
                   </div>
-                )}
-                
-                {userEmail && userAppointments.length === 0 && !isChecking && (
-                  <p className="text-sm text-muted-foreground">No appointments found for this email.</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">You don't have any appointments yet.</p>
                 )}
               </div>
             </div>

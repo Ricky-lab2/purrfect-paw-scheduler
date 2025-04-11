@@ -5,10 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Clock, MapPin, AlertCircle } from "lucide-react";
 import { getAppointments, Appointment } from "@/utils/localStorageDB";
+import { useNavigate } from "react-router-dom";
 
 const UserAppointments = () => {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const navigate = useNavigate();
   
   useEffect(() => {
     if (user) {
@@ -16,6 +18,14 @@ const UserAppointments = () => {
       const userAppointments = getAppointments().filter(
         apt => apt.email.toLowerCase() === user.email.toLowerCase()
       );
+      
+      // Sort appointments by date (newest first)
+      userAppointments.sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return dateB - dateA;
+      });
+      
       setAppointments(userAppointments);
     }
   }, [user]);
@@ -28,6 +38,10 @@ const UserAppointments = () => {
       case "Cancelled": return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300";
       default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
     }
+  };
+  
+  const handleScheduleNew = () => {
+    navigate("/appointment");
   };
   
   return (
@@ -45,17 +59,15 @@ const UserAppointments = () => {
               <p className="text-center text-muted-foreground mb-6">
                 You haven't scheduled any appointments yet
               </p>
-              <Button asChild>
-                <a href="/appointment">Schedule Appointment</a>
-              </Button>
+              <Button onClick={handleScheduleNew}>Schedule Appointment</Button>
             </CardContent>
           </Card>
         ) : (
           <>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Upcoming Appointments</h2>
-              <Button asChild variant="outline" size="sm">
-                <a href="/appointment">Schedule New</a>
+              <h2 className="text-xl font-semibold">Your Appointments</h2>
+              <Button onClick={handleScheduleNew} variant="outline" size="sm">
+                Schedule New
               </Button>
             </div>
             
