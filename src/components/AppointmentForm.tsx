@@ -1,24 +1,42 @@
-import { useState } from "react";
-import { Check, Calendar, Clock, ChevronDown } from "lucide-react";
+
+import { useState, useEffect } from "react";
+import { Check, Calendar, Clock, ChevronDown, User, PawPrint } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { saveAppointment } from "@/utils/localStorageDB";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 type ServiceType = "checkup" | "vaccination" | "grooming" | "surgery" | "deworming";
 type TimeSlot = "morning" | "afternoon" | "evening";
 type PetGender = "male" | "female";
 
+type Pet = {
+  id: string;
+  name: string;
+  type: string;
+  breed?: string;
+  birthDate: string;
+  gender: PetGender;
+  ownerId: string;
+};
+
 export function AppointmentForm() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user, getUserPets, calculatePetAge } = useAuth();
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [userPets, setUserPets] = useState<Pet[]>([]);
+  const [selectedPet, setSelectedPet] = useState<string>("");
+  
   const [formData, setFormData] = useState({
-    name: "",
+    name: user?.name || "",
     petName: "",
     petAge: "",
     petGender: "" as PetGender,
-    email: "",
-    phone: "",
+    email: user?.email || "",
+    phone: user?.phone || "",
     serviceType: "" as ServiceType,
     date: "",
     timeSlot: "" as TimeSlot,
@@ -26,7 +44,41 @@ export function AppointmentForm() {
     isFirstTime: false,
     additionalInfo: "",
   });
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // Set user information from profile
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || ""
+      }));
+      
+      // Fetch user's pets
+      const pets = getUserPets();
+      setUserPets(pets);
+    }
+  }, [user]);
+  
+  // Handle pet selection change
+  const handlePetChange = (petId: string) => {
+    setSelectedPet(petId);
+    
+    if (petId) {
+      const pet = userPets.find(p => p.id === petId);
+      if (pet) {
+        setFormData(prev => ({
+          ...prev,
+          petName: pet.name,
+          petGender: pet.gender,
+          petAge: calculatePetAge(pet.birthDate)
+        }));
+      }
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -129,6 +181,24 @@ export function AppointmentForm() {
     }
   };
 
+  // Service descriptions
+  const serviceDescriptions = {
+    checkup: "A comprehensive health assessment of your pet including physical examination, weight check, and general health screening.",
+    vaccination: "Essential vaccines to protect your pet against common diseases and maintain their health and immunity.",
+    grooming: "Complete grooming service including bath, hair trimming, nail cutting, ear cleaning, and more.",
+    surgery: "Professional surgical procedures performed by experienced veterinarians in a sterile environment.",
+    deworming: "Treatment to eliminate parasitic worms and protect your pet from related health issues."
+  };
+
+  // Service prices
+  const servicePrices = {
+    checkup: "$50 - $80",
+    vaccination: "$30 - $100",
+    grooming: "$40 - $120",
+    surgery: "$200 - $2000+",
+    deworming: "$15 - $50"
+  };
+
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="mb-8">
@@ -182,6 +252,32 @@ export function AppointmentForm() {
           <div className="space-y-4 animate-fade-in">
             <h2 className="text-xl font-medium mb-4">Personal Information</h2>
             
+            {userPets.length > 0 && (
+              <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <PawPrint className="h-5 w-5 text-pet-blue" />
+                  <h3 className="font-medium">Select Your Pet</h3>
+                </div>
+                <div className="mb-2">
+                  <Select value={selectedPet} onValueChange={handlePetChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose a pet to autofill information" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {userPets.map(pet => (
+                        <SelectItem key={pet.id} value={pet.id}>
+                          {pet.name} ({pet.type})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Selecting a pet will automatically fill in your pet's information.
+                </p>
+              </div>
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -228,7 +324,13 @@ export function AppointmentForm() {
                   placeholder="e.g., 2 years"
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
                   required
+                  readOnly={!!selectedPet}
                 />
+                {!selectedPet && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    To automatically calculate age, add your pet's birthdate in your profile.
+                  </p>
+                )}
               </div>
               
               <div>
@@ -314,139 +416,186 @@ export function AppointmentForm() {
               ))}
             </div>
             
-            {formData.serviceType === "checkup" && (
+            {formData.serviceType && (
               <div className="p-4 bg-pet-blue/5 rounded-lg border border-pet-blue/20">
-                <h3 className="font-medium mb-2">Checkup Information</h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Regular checkups help detect health issues early and ensure your pet stays healthy.
-                </p>
-                
-                <div className="flex items-start gap-2 mb-4">
-                  <input
-                    type="checkbox"
-                    id="isUrgent"
-                    name="isUrgent"
-                    checked={formData.isUrgent}
-                    onChange={handleCheckboxChange}
-                    className="mt-1"
-                  />
-                  <label htmlFor="isUrgent" className="text-sm">
-                    This is an urgent matter that requires immediate attention
-                  </label>
-                </div>
-                
-                <div>
-                  <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700 mb-1">
-                    Additional Information (symptoms, concerns, etc.)
-                  </label>
-                  <textarea
-                    id="additionalInfo"
-                    name="additionalInfo"
-                    value={formData.additionalInfo}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
-                    rows={3}
-                  ></textarea>
-                </div>
-              </div>
-            )}
-            
-            {formData.serviceType === "vaccination" && (
-              <div className="p-4 bg-pet-blue/5 rounded-lg border border-pet-blue/20">
-                <h3 className="font-medium mb-2">Vaccination Information</h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Regular vaccinations are essential for protecting your pet against common diseases.
-                </p>
-                
-                <div className="flex items-start gap-2 mb-4">
-                  <input
-                    type="checkbox"
-                    id="isFirstTime"
-                    name="isFirstTime"
-                    checked={formData.isFirstTime}
-                    onChange={handleCheckboxChange}
-                    className="mt-1"
-                  />
-                  <label htmlFor="isFirstTime" className="text-sm">
-                    This is my pet's first time getting vaccinated
-                  </label>
-                </div>
-                
-                <ul className="text-sm space-y-2">
-                  <li className="flex gap-2">
-                    <Check size={16} className="text-pet-blue-dark shrink-0 mt-0.5" />
-                    <span>Core vaccines (required for all pets)</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <Check size={16} className="text-pet-blue-dark shrink-0 mt-0.5" />
-                    <span>Non-core vaccines (based on lifestyle and risk)</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <Check size={16} className="text-pet-blue-dark shrink-0 mt-0.5" />
-                    <span>Vaccination records and reminders</span>
-                  </li>
-                </ul>
-              </div>
-            )}
-            
-            {formData.serviceType === "surgery" && (
-              <div className="p-4 bg-pet-blue/5 rounded-lg border border-pet-blue/20">
-                <h3 className="font-medium mb-2">Surgery Information</h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Our veterinary surgeons provide a range of surgical services with state-of-the-art equipment.
-                </p>
-                
-                <div>
-                  <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700 mb-1">
-                    Additional Information (prior conditions, medications, etc.)
-                  </label>
-                  <textarea
-                    id="additionalInfo"
-                    name="additionalInfo"
-                    value={formData.additionalInfo}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
-                    rows={3}
-                    placeholder="Please provide any relevant information about your pet's condition..."
-                  ></textarea>
-                </div>
-              </div>
-            )}
-            
-            {formData.serviceType === "deworming" && (
-              <div className="p-4 bg-pet-blue/5 rounded-lg border border-pet-blue/20">
-                <h3 className="font-medium mb-2">Deworming Information</h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Regular deworming helps protect your pet from internal parasites.
-                </p>
-                
-                <div className="flex items-start gap-2 mb-4">
-                  <input
-                    type="checkbox"
-                    id="isFirstTime"
-                    name="isFirstTime"
-                    checked={formData.isFirstTime}
-                    onChange={handleCheckboxChange}
-                    className="mt-1"
-                  />
-                  <label htmlFor="isFirstTime" className="text-sm">
-                    This is my pet's first time getting dewormed
-                  </label>
-                </div>
-                
-                <div>
-                  <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700 mb-1">
-                    Additional Information
-                  </label>
-                  <textarea
-                    id="additionalInfo"
-                    name="additionalInfo"
-                    value={formData.additionalInfo}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
-                    rows={3}
-                    placeholder="Please provide any relevant information about your pet..."
-                  ></textarea>
+                <h3 className="font-medium mb-2 capitalize">{formData.serviceType} Information</h3>
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600">
+                    {serviceDescriptions[formData.serviceType as keyof typeof serviceDescriptions]}
+                  </p>
+                  
+                  <div className="flex justify-between bg-white p-3 rounded-md border border-gray-100">
+                    <span className="text-sm font-medium">Estimated Price:</span>
+                    <span className="text-sm">{servicePrices[formData.serviceType as keyof typeof servicePrices]}</span>
+                  </div>
+                  
+                  {formData.serviceType === "checkup" && (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2 mb-4">
+                        <input
+                          type="checkbox"
+                          id="isUrgent"
+                          name="isUrgent"
+                          checked={formData.isUrgent}
+                          onChange={handleCheckboxChange}
+                          className="mt-1"
+                        />
+                        <label htmlFor="isUrgent" className="text-sm">
+                          This is an urgent matter that requires immediate attention
+                        </label>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700 mb-1">
+                          Additional Information (symptoms, concerns, etc.)
+                        </label>
+                        <textarea
+                          id="additionalInfo"
+                          name="additionalInfo"
+                          value={formData.additionalInfo}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
+                          rows={3}
+                        ></textarea>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {formData.serviceType === "vaccination" && (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2 mb-4">
+                        <input
+                          type="checkbox"
+                          id="isFirstTime"
+                          name="isFirstTime"
+                          checked={formData.isFirstTime}
+                          onChange={handleCheckboxChange}
+                          className="mt-1"
+                        />
+                        <label htmlFor="isFirstTime" className="text-sm">
+                          This is my pet's first time getting vaccinated
+                        </label>
+                      </div>
+                      
+                      <ul className="text-sm space-y-2 bg-white p-3 rounded-md border border-gray-100">
+                        <li className="flex gap-2">
+                          <Check size={16} className="text-pet-blue-dark shrink-0 mt-0.5" />
+                          <span>Core vaccines (required for all pets)</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <Check size={16} className="text-pet-blue-dark shrink-0 mt-0.5" />
+                          <span>Non-core vaccines (based on lifestyle and risk)</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <Check size={16} className="text-pet-blue-dark shrink-0 mt-0.5" />
+                          <span>Vaccination records and reminders</span>
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {formData.serviceType === "surgery" && (
+                    <div className="space-y-3">
+                      <div>
+                        <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700 mb-1">
+                          Additional Information (prior conditions, medications, etc.)
+                        </label>
+                        <textarea
+                          id="additionalInfo"
+                          name="additionalInfo"
+                          value={formData.additionalInfo}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
+                          rows={3}
+                          placeholder="Please provide any relevant information about your pet's condition..."
+                        ></textarea>
+                      </div>
+                      <div className="bg-yellow-50 p-3 rounded-md border border-yellow-100 text-sm">
+                        <p className="font-medium text-yellow-800">Important Note:</p>
+                        <p className="text-yellow-700">Your pet may need to fast before surgery. Our team will provide specific instructions after booking.</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {formData.serviceType === "grooming" && (
+                    <div className="space-y-3">
+                      <p className="text-sm">Our grooming services include:</p>
+                      <ul className="text-sm space-y-2 bg-white p-3 rounded-md border border-gray-100">
+                        <li className="flex gap-2">
+                          <Check size={16} className="text-pet-blue-dark shrink-0 mt-0.5" />
+                          <span>Bath with premium shampoo</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <Check size={16} className="text-pet-blue-dark shrink-0 mt-0.5" />
+                          <span>Hair trimming and styling</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <Check size={16} className="text-pet-blue-dark shrink-0 mt-0.5" />
+                          <span>Nail trimming</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <Check size={16} className="text-pet-blue-dark shrink-0 mt-0.5" />
+                          <span>Ear cleaning</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <Check size={16} className="text-pet-blue-dark shrink-0 mt-0.5" />
+                          <span>Teeth brushing</span>
+                        </li>
+                      </ul>
+                      <div>
+                        <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700 mb-1">
+                          Special requests or instructions
+                        </label>
+                        <textarea
+                          id="additionalInfo"
+                          name="additionalInfo"
+                          value={formData.additionalInfo}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
+                          rows={2}
+                          placeholder="Any specific grooming needs or preferences..."
+                        ></textarea>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {formData.serviceType === "deworming" && (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2 mb-4">
+                        <input
+                          type="checkbox"
+                          id="isFirstTime"
+                          name="isFirstTime"
+                          checked={formData.isFirstTime}
+                          onChange={handleCheckboxChange}
+                          className="mt-1"
+                        />
+                        <label htmlFor="isFirstTime" className="text-sm">
+                          This is my pet's first time getting dewormed
+                        </label>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700 mb-1">
+                          Additional Information
+                        </label>
+                        <textarea
+                          id="additionalInfo"
+                          name="additionalInfo"
+                          value={formData.additionalInfo}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
+                          rows={3}
+                          placeholder="Please provide any relevant information about your pet..."
+                        ></textarea>
+                      </div>
+                      <div className="bg-white p-3 rounded-md border border-gray-100">
+                        <p className="text-sm font-medium">Recommended Schedule:</p>
+                        <p className="text-sm text-muted-foreground">Puppies and kittens: Every 2-3 weeks until 12 weeks old, then monthly until 6 months</p>
+                        <p className="text-sm text-muted-foreground">Adult pets: Every 3-6 months</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -3,11 +3,13 @@ import { useState, useEffect } from "react";
 import { AppointmentForm } from "@/components/AppointmentForm";
 import { CheckCircle2, Search } from "lucide-react";
 import { getAppointments, Appointment as AppointmentType } from "@/utils/localStorageDB";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Appointment = () => {
   const [userEmail, setUserEmail] = useState("");
   const [userAppointments, setUserAppointments] = useState<AppointmentType[]>([]);
   const [isChecking, setIsChecking] = useState(false);
+  const { isAuthenticated } = useAuth();
   
   const checkAppointments = () => {
     if (!userEmail) return;
