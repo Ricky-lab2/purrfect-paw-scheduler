@@ -34,6 +34,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   
   if (requireAdmin && !isAdmin) {
     // User is logged in but not an admin, redirect to home
+    if (showToast) {
+      toast({
+        title: "Access denied",
+        description: "You don't have permission to access this page",
+        variant: "destructive",
+      });
+    }
     return <Navigate to="/" replace />;
   }
   

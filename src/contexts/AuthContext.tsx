@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from "react";
 
 type User = {
@@ -6,6 +5,8 @@ type User = {
   name: string;
   email: string;
   role: "admin" | "customer";
+  phone?: string;
+  address?: string;
 };
 
 type Pet = {
@@ -28,6 +29,8 @@ type AuthContextType = {
   addPet: (pet: Omit<Pet, 'id' | 'ownerId'>) => Pet;
   updatePet: (id: string, updates: Partial<Omit<Pet, 'id' | 'ownerId'>>) => boolean;
   deletePet: (id: string) => boolean;
+  getPetById: (id: string) => Pet | null;
+  calculatePetAge: (birthDate: string) => string;
   isAuthenticated: boolean;
   isAdmin: boolean;
 };
@@ -75,7 +78,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: "customer-1",
         name: "John Doe",
         email: mockCustomerCredentials.email,
-        role: "customer"
+        role: "customer",
+        phone: "555-123-4567",
+        address: "123 Main St, Anytown, USA"
       };
     }
     
@@ -228,6 +233,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     return false;
   };
+  
+  // Get pet by ID
+  const getPetById = (id: string): Pet | null => {
+    if (!user) return null;
+    
+    const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
+    return allPets.find((pet: Pet) => pet.id === id && pet.ownerId === user.id) || null;
+  };
+  
+  // Calculate pet age from birthDate
+  const calculatePetAge = (birthDate: string): string => {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    
+    let years = today.getFullYear() - birth.getFullYear();
+    const months = today.getMonth() - birth.getMonth();
+    
+    // Adjust years if the current month is before the birth month
+    if (months < 0 || (months === 0 && today.getDate() < birth.getDate())) {
+      years--;
+    }
+    
+    // Calculate remaining months
+    let remainingMonths = months;
+    if (remainingMonths < 0) {
+      remainingMonths += 12;
+    }
+    
+    if (years < 1) {
+      return remainingMonths === 1 ? "1 month" : `${remainingMonths} months`;
+    } else if (remainingMonths === 0) {
+      return years === 1 ? "1 year" : `${years} years`;
+    } else {
+      return `${years} ${years === 1 ? "year" : "years"} and ${remainingMonths} ${remainingMonths === 1 ? "month" : "months"}`;
+    }
+  };
 
   const isAuthenticated = user !== null;
   const isAdmin = user?.role === "admin";
@@ -243,7 +284,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getUserPets,
         addPet,
         updatePet,
-        deletePet, 
+        deletePet,
+        getPetById,
+        calculatePetAge,
         isAuthenticated, 
         isAdmin 
       }}

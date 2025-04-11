@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { PawPrint, Plus, Pencil, Trash2, Heart } from "lucide-react";
+import { PawPrint, Plus, Pencil, Trash2, Heart, Calendar } from "lucide-react";
 
 type Pet = {
   id: string;
@@ -31,7 +31,7 @@ const DEFAULT_PET_FORM: PetFormData = {
 };
 
 const UserPets = () => {
-  const { getUserPets, addPet, updatePet, deletePet } = useAuth();
+  const { getUserPets, addPet, updatePet, deletePet, calculatePetAge, user } = useAuth();
   const { toast } = useToast();
   
   const [pets, setPets] = useState<Pet[]>(getUserPets());
@@ -50,6 +50,15 @@ const UserPets = () => {
   
   const handleAddPet = () => {
     try {
+      if (!formData.birthDate) {
+        toast({
+          title: "Birth date required",
+          description: "Please enter your pet's birth date.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       addPet(formData);
       refreshPets();
       setIsAddDialogOpen(false);
@@ -70,6 +79,15 @@ const UserPets = () => {
   
   const handleEditPet = () => {
     if (!currentPet) return;
+    
+    if (!formData.birthDate) {
+      toast({
+        title: "Birth date required",
+        description: "Please enter your pet's birth date.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const success = updatePet(currentPet.id, formData);
     
@@ -155,7 +173,7 @@ const UserPets = () => {
             
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Pet Name</Label>
+                <Label htmlFor="name">Pet Name*</Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -167,7 +185,7 @@ const UserPets = () => {
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="type">Pet Type</Label>
+                  <Label htmlFor="type">Pet Type*</Label>
                   <Select
                     value={formData.type}
                     onValueChange={(value) => handleFormChange("type", value)}
@@ -185,7 +203,7 @@ const UserPets = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="gender">Gender</Label>
+                  <Label htmlFor="gender">Gender*</Label>
                   <Select
                     value={formData.gender}
                     onValueChange={(value) => handleFormChange("gender", value as "male" | "female")}
@@ -212,13 +230,25 @@ const UserPets = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="birthDate">Birth Date</Label>
+                <Label htmlFor="birthDate">Birth Date*</Label>
                 <Input
                   id="birthDate"
                   type="date"
                   value={formData.birthDate}
                   onChange={(e) => handleFormChange("birthDate", e.target.value)}
                   required
+                  max={new Date().toISOString().split('T')[0]}
+                />
+                <p className="text-xs text-muted-foreground">Required to calculate your pet's age</p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="owner">Owner</Label>
+                <Input
+                  id="owner"
+                  value={user?.name || ""}
+                  disabled
+                  className="bg-gray-50"
                 />
               </div>
             </div>
@@ -282,6 +312,10 @@ const UserPets = () => {
                       <span>{new Date(pet.birthDate).toLocaleDateString()}</span>
                     </div>
                     <div className="flex justify-between">
+                      <span className="text-muted-foreground">Age:</span>
+                      <span>{calculatePetAge(pet.birthDate)}</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-muted-foreground">Gender:</span>
                       <span className="capitalize">{pet.gender}</span>
                     </div>
@@ -311,7 +345,7 @@ const UserPets = () => {
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Pet Name</Label>
+              <Label htmlFor="edit-name">Pet Name*</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
@@ -323,7 +357,7 @@ const UserPets = () => {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-type">Pet Type</Label>
+                <Label htmlFor="edit-type">Pet Type*</Label>
                 <Select
                   value={formData.type}
                   onValueChange={(value) => handleFormChange("type", value)}
@@ -341,7 +375,7 @@ const UserPets = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="edit-gender">Gender</Label>
+                <Label htmlFor="edit-gender">Gender*</Label>
                 <Select
                   value={formData.gender}
                   onValueChange={(value) => handleFormChange("gender", value as "male" | "female")}
@@ -368,13 +402,25 @@ const UserPets = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="edit-birthDate">Birth Date</Label>
+              <Label htmlFor="edit-birthDate">Birth Date*</Label>
               <Input
                 id="edit-birthDate"
                 type="date"
                 value={formData.birthDate}
                 onChange={(e) => handleFormChange("birthDate", e.target.value)}
                 required
+                max={new Date().toISOString().split('T')[0]}
+              />
+              <p className="text-xs text-muted-foreground">Required to calculate your pet's age</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-owner">Owner</Label>
+              <Input
+                id="edit-owner"
+                value={user?.name || ""}
+                disabled
+                className="bg-gray-50"
               />
             </div>
           </div>

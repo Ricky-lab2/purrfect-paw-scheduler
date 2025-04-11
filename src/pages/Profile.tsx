@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { UserRound, Mail, Edit } from "lucide-react";
+import { UserRound, Mail, Phone, Edit } from "lucide-react";
 
 const Profile = () => {
   const { user, updateUserProfile } = useAuth();
@@ -14,11 +14,13 @@ const Profile = () => {
   
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [address, setAddress] = useState(user?.address || "");
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    updateUserProfile({ name });
+    updateUserProfile({ name, phone, address });
     
     toast({
       title: "Profile updated",
@@ -74,6 +76,24 @@ const Profile = () => {
                     <p className="text-xs text-muted-foreground">Email address cannot be changed</p>
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Your phone number"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Your address"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="role">Account Type</Label>
                     <Input
                       id="role"
@@ -103,6 +123,21 @@ const Profile = () => {
                       <Mail className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">{user?.email}</span>
                     </div>
+                    {user?.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{user?.phone}</span>
+                      </div>
+                    )}
+                    {user?.address && (
+                      <div className="flex items-center gap-2">
+                        <svg className="h-4 w-4 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span className="text-sm">{user?.address}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
