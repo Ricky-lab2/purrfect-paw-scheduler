@@ -1,3 +1,4 @@
+
 const APPOINTMENTS_KEY = "appointments";
 
 export const getAppointments = () => {
@@ -71,4 +72,84 @@ export const deleteAppointment = (id: string) => {
   const appointments = getAppointments();
   const updatedAppointments = appointments.filter((apt) => apt.id !== id);
   localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(updatedAppointments));
+  return true; // Return true to indicate successful deletion
+};
+
+// Add the missing seedInitialData function
+export const seedInitialData = () => {
+  // Only seed if there are no appointments
+  const existingAppointments = getAppointments();
+  if (existingAppointments.length > 0) {
+    return;
+  }
+
+  // Sample appointment data
+  const sampleAppointments: Appointment[] = [
+    {
+      id: "apt-1680678400000",
+      petName: "Max",
+      petAge: "3",
+      petGender: "male",
+      petSpecies: "dog",
+      ownerName: "John Doe",
+      email: "john.doe@example.com",
+      phone: "555-123-4567",
+      service: "checkup",
+      date: "2025-06-01",
+      time: "10:00 AM",
+      status: "Pending",
+      createdAt: 1680678400000,
+      isFirstTime: true
+    },
+    {
+      id: "apt-1680764800000",
+      petName: "Luna",
+      petAge: "2",
+      petGender: "female",
+      petSpecies: "cat",
+      ownerName: "Jane Smith",
+      email: "jane.smith@example.com",
+      phone: "555-987-6543",
+      service: "vaccination",
+      date: "2025-06-02",
+      time: "2:30 PM",
+      status: "Confirmed",
+      createdAt: 1680764800000,
+      isUrgent: false
+    },
+    {
+      id: "apt-1680851200000",
+      petName: "Rocky",
+      petAge: "5",
+      petGender: "male",
+      petSpecies: "dog",
+      ownerName: "Michael Johnson",
+      email: "michael.j@example.com",
+      phone: "555-456-7890",
+      service: "grooming",
+      date: "2025-05-28",
+      time: "11:15 AM",
+      additionalInfo: "Allergic to certain shampoos",
+      status: "Completed",
+      createdAt: 1680851200000
+    },
+    {
+      id: "apt-1680937600000",
+      petName: "Bella",
+      petAge: "1",
+      petGender: "female",
+      petSpecies: "dog",
+      ownerName: "Emily Williams",
+      email: "emily.w@example.com",
+      phone: "555-789-0123",
+      service: "deworming",
+      date: "2025-05-30",
+      time: "3:45 PM",
+      status: "Cancelled",
+      createdAt: 1680937600000,
+      isUrgent: true
+    }
+  ];
+
+  localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(sampleAppointments));
 };

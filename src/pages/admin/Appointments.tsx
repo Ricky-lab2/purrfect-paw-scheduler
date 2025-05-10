@@ -45,7 +45,8 @@ const Appointments = () => {
   };
 
   const handleStatusUpdate = (id: string, status: Appointment['status']) => {
-    if (updateAppointmentStatus(id, status)) {
+    const success = updateAppointmentStatus(id, status);
+    if (success) {
       loadAppointments();
       toast({
         title: "Status Updated",
@@ -55,7 +56,8 @@ const Appointments = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (deleteAppointment(id)) {
+    const success = deleteAppointment(id);
+    if (success) {
       loadAppointments();
       toast({
         title: "Appointment Deleted",
