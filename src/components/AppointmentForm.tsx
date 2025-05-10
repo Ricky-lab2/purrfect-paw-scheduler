@@ -36,6 +36,7 @@ export function AppointmentForm() {
     petAge: "",
     petGender: "" as PetGender,
     petSpecies: "" as PetSpecies,
+    otherPetType: "", // Added field for other pet type
     email: user?.email || "",
     phone: user?.phone || "",
     serviceType: "" as ServiceType,
@@ -102,6 +103,17 @@ export function AppointmentForm() {
         });
         return;
       }
+      
+      // Check if "other" is selected but no description is provided
+      if (formData.petSpecies === "other" && !formData.otherPetType) {
+        toast({
+          title: "Missing information",
+          description: "Please specify the type of pet",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setStep(2);
     } else if (step === 2) {
       if (!formData.serviceType) {
@@ -135,12 +147,17 @@ export function AppointmentForm() {
     try {
       setIsSubmitting(true);
       
+      // Save the pet species with other type description if applicable
+      const finalPetSpecies = formData.petSpecies === "other" 
+        ? `other: ${formData.otherPetType}` 
+        : formData.petSpecies;
+      
       const appointment = saveAppointment({
         petName: formData.petName,
         ownerName: formData.name,
         petAge: formData.petAge,
         petGender: formData.petGender,
-        petSpecies: formData.petSpecies,
+        petSpecies: finalPetSpecies,
         email: formData.email,
         phone: formData.phone,
         service: formData.serviceType,
@@ -179,13 +196,13 @@ export function AppointmentForm() {
     deworming: "Treatment to eliminate parasitic worms and protect your pet from related health issues."
   };
 
-  // Service prices
+  // Service prices - changed to PHP currency
   const servicePrices = {
-    checkup: "$50 - $80",
-    vaccination: "$30 - $100",
-    grooming: "$40 - $120",
-    surgery: "$200 - $2000+",
-    deworming: "$15 - $50"
+    checkup: "₱2,500 - ₱4,000",
+    vaccination: "₱1,500 - ₱5,000",
+    grooming: "₱2,000 - ₱6,000",
+    surgery: "₱10,000 - ₱100,000+",
+    deworming: "₱750 - ₱2,500"
   };
 
   // Species icon mapping
@@ -200,6 +217,14 @@ export function AppointmentForm() {
       case "reptile": return "🦎";
       default: return "🐾";
     }
+  };
+
+  // Get proper display for pet species
+  const getDisplayPetSpecies = (species: string) => {
+    if (species.startsWith("other:")) {
+      return species; // Return the full string with description
+    }
+    return species; // Return just the species name
   };
 
   return (
@@ -385,6 +410,25 @@ export function AppointmentForm() {
                 </select>
               </div>
             </div>
+            
+            {/* Show "Other Pet Type" field when "other" is selected */}
+            {formData.petSpecies === "other" && (
+              <div>
+                <label htmlFor="otherPetType" className="block text-sm font-medium text-gray-700 mb-1">
+                  Please specify pet type*
+                </label>
+                <input
+                  type="text"
+                  id="otherPetType"
+                  name="otherPetType"
+                  value={formData.otherPetType}
+                  onChange={handleChange}
+                  placeholder="e.g., Guinea pig, Ferret, etc."
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
+                  required
+                />
+              </div>
+            )}
             
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -709,7 +753,10 @@ export function AppointmentForm() {
                 <div className="font-medium capitalize">
                   {formData.petSpecies && (
                     <span>
-                      {getSpeciesIcon(formData.petSpecies)} {formData.petSpecies}
+                      {formData.petSpecies === "other" 
+                        ? `${getSpeciesIcon(formData.petSpecies)} ${formData.otherPetType}`
+                        : `${getSpeciesIcon(formData.petSpecies)} ${formData.petSpecies}`
+                      }
                     </span>
                   )}
                 </div>

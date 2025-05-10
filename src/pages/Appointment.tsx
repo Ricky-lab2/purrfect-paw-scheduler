@@ -40,6 +40,10 @@ const Appointment = () => {
   
   // Get species icon based on pet type
   const getSpeciesIcon = (species: string) => {
+    if (species.startsWith("other:")) {
+      return "🐾"; // Generic paw for other pet types
+    }
+    
     switch(species) {
       case "dog": return "🐕";
       case "cat": return "🐈"; 
@@ -60,6 +64,14 @@ const Appointment = () => {
       case "Cancelled": return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300";
       default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
     }
+  };
+  
+  // Format pet species for display
+  const formatPetSpecies = (species: string) => {
+    if (species.startsWith("other:")) {
+      return species.substring(7); // Remove "other: " prefix
+    }
+    return species;
   };
   
   // Redirect to login if user is not authenticated
@@ -110,10 +122,10 @@ const Appointment = () => {
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="font-medium">
-                              {apt.petName} {apt.petSpecies && getSpeciesIcon(apt.petSpecies)} - {apt.service}
+                              {apt.petName} {getSpeciesIcon(apt.petSpecies)} - {apt.service}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {new Date(apt.date).toLocaleDateString()} at {apt.time}
+                              {new Date(apt.date).toLocaleDateString()} at {apt.time || apt.timeSlot}
                             </p>
                           </div>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(apt.status)}`}>
@@ -134,6 +146,38 @@ const Appointment = () => {
                 ) : (
                   <p className="text-sm text-muted-foreground">You don't have any appointments yet.</p>
                 )}
+              </div>
+            </div>
+            
+            <div className="card-glass p-6">
+              <h3 className="text-xl font-medium mb-4">Additional Services</h3>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Besides appointments, we offer these additional services for your pet:
+                </p>
+                
+                <div className="space-y-4">
+                  <div className="p-3 border rounded-lg bg-gradient-to-r from-blue-50 to-blue-100">
+                    <h4 className="font-medium">Pet Grooming Packages</h4>
+                    <p className="text-sm text-gray-600 mt-1">Complete grooming services starting from ₱2,000</p>
+                  </div>
+                  
+                  <div className="p-3 border rounded-lg bg-gradient-to-r from-green-50 to-green-100">
+                    <h4 className="font-medium">Pet Dental Care</h4>
+                    <p className="text-sm text-gray-600 mt-1">Professional teeth cleaning and oral care from ₱1,500</p>
+                  </div>
+                  
+                  <div className="p-3 border rounded-lg bg-gradient-to-r from-purple-50 to-purple-100">
+                    <h4 className="font-medium">Pet Boarding</h4>
+                    <p className="text-sm text-gray-600 mt-1">Safe and comfortable boarding facilities from ₱800/night</p>
+                  </div>
+                </div>
+                
+                <div className="mt-4 text-center">
+                  <a href="/services" className="text-pet-blue-dark hover:underline text-sm">
+                    Learn more about our services →
+                  </a>
+                </div>
               </div>
             </div>
             

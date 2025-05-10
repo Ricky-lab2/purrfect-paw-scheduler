@@ -1,4 +1,5 @@
 
+
 const APPOINTMENTS_KEY = "appointments";
 
 export const getAppointments = () => {
@@ -17,7 +18,7 @@ export type Appointment = {
   petName: string;
   petAge: string;
   petGender: string;
-  petSpecies: string; // Added pet species field
+  petSpecies: string; // Can include "other: specific type" format
   ownerName: string;
   email: string;
   phone: string;
@@ -34,7 +35,7 @@ export type Appointment = {
 
 type AppointmentInput = Omit<Appointment, "id" | "status" | "createdAt">;
 
-export const updateAppointmentStatus = (id: string, status: string) => {
+export const updateAppointmentStatus = (id: string, status: string): boolean => {
   const appointments = getAppointments();
   const appointmentIndex = appointments.findIndex((apt) => apt.id === id);
 
@@ -68,7 +69,7 @@ export const saveAppointment = (appointment: AppointmentInput): Appointment => {
   return newAppointment;
 };
 
-export const deleteAppointment = (id: string) => {
+export const deleteAppointment = (id: string): boolean => {
   const appointments = getAppointments();
   const updatedAppointments = appointments.filter((apt) => apt.id !== id);
   localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(updatedAppointments));
@@ -76,7 +77,7 @@ export const deleteAppointment = (id: string) => {
 };
 
 // Add the missing seedInitialData function
-export const seedInitialData = () => {
+export const seedInitialData = (): void => {
   // Only seed if there are no appointments
   const existingAppointments = getAppointments();
   if (existingAppointments.length > 0) {
@@ -153,3 +154,4 @@ export const seedInitialData = () => {
 
   localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(sampleAppointments));
 };
+
