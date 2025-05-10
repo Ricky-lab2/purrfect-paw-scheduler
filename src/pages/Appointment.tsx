@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AppointmentForm } from "@/components/AppointmentForm";
 import { CheckCircle2, Search } from "lucide-react";
@@ -39,7 +38,12 @@ const Appointment = () => {
   };
   
   // Get species icon based on pet type
-  const getSpeciesIcon = (species: string) => {
+  const getSpeciesIcon = (species: string | undefined) => {
+    // Add null check here
+    if (!species) {
+      return "🐾"; // Default icon if species is undefined
+    }
+    
     if (species.startsWith("other:")) {
       return "🐾"; // Generic paw for other pet types
     }
