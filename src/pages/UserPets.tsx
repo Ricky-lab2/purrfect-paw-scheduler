@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -14,10 +14,15 @@ const UserPets = () => {
   const { getUserPets, deletePet } = useAuth();
   const { toast } = useToast();
   
-  const [pets, setPets] = useState<Pet[]>(getUserPets());
+  const [pets, setPets] = useState<Pet[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentPet, setCurrentPet] = useState<Pet | null>(null);
+  
+  // Initial pet load and refresh function
+  useEffect(() => {
+    setPets(getUserPets());
+  }, [getUserPets]);
   
   const refreshPets = () => {
     setPets(getUserPets());
