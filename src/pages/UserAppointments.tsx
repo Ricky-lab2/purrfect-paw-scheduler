@@ -5,30 +5,41 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Clock, MapPin, AlertCircle } from "lucide-react";
 import { getAppointments, Appointment } from "@/utils/localStorageDB";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const UserAppointments = () => {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   useEffect(() => {
     if (user) {
-      // Get all appointments for the current user
-      const userAppointments = getAppointments().filter(
-        apt => apt.email.toLowerCase() === user.email.toLowerCase()
-      );
-      
-      // Sort appointments by date (newest first)
-      userAppointments.sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        return dateB - dateA;
-      });
-      
-      setAppointments(userAppointments);
+      try {
+        // Get all appointments for the current user
+        const userAppointments = getAppointments().filter(
+          apt => apt.email.toLowerCase() === user.email.toLowerCase()
+        );
+        
+        // Sort appointments by date (newest first)
+        userAppointments.sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          return dateB - dateA;
+        });
+        
+        setAppointments(userAppointments);
+      } catch (error) {
+        console.error("Error loading appointments:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load your appointments. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [user]);
+  }, [user, toast]);
   
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -42,6 +53,11 @@ const UserAppointments = () => {
   
   const handleScheduleNew = () => {
     navigate("/appointment");
+  };
+  
+  // Format currency to PHP
+  const formatCurrency = (amount: number) => {
+    return `₱${amount.toLocaleString()}`;
   };
   
   return (
@@ -87,7 +103,7 @@ const UserAppointments = () => {
                       </span>
                     </div>
                     <CardDescription>
-                      Appointment #{apt.id}
+                      Appointment #{apt.id.replace('apt-', '')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -111,7 +127,7 @@ const UserAppointments = () => {
                         <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
                           <p className="text-sm font-medium">Time</p>
-                          <p className="text-sm text-muted-foreground">{apt.time}</p>
+                          <p className="text-sm text-muted-foreground">{apt.time || apt.timeSlot || "Not specified"}</p>
                         </div>
                       </div>
                       
@@ -139,7 +155,7 @@ const UserAppointments = () => {
                     {apt.status !== "Cancelled" && apt.status !== "Completed" && (
                       <div className="mt-4 flex justify-end space-x-2">
                         <Button asChild size="sm" variant="outline">
-                          <a href={`/appointment?reschedule=${apt.id}`}>Reschedule</a>
+                          <Link to={`/appointment?reschedule=${apt.id}`}>Reschedule</Link>
                         </Button>
                       </div>
                     )}

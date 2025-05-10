@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { UserRound, Mail, Phone, Edit } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Profile = () => {
   const { user, updateUserProfile } = useAuth();
@@ -155,10 +156,10 @@ const Profile = () => {
         
         <div className="md:col-span-3 flex gap-4">
           <Button variant="outline" asChild className="flex-1">
-            <a href="/my-pets">Manage Pets</a>
+            <Link to="/my-pets">Manage Pets</Link>
           </Button>
           <Button variant="outline" asChild className="flex-1">
-            <a href="/my-appointments">View Appointments</a>
+            <Link to="/my-appointments">View Appointments</Link>
           </Button>
         </div>
       </div>

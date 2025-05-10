@@ -2,13 +2,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
 import AddPetDialog from "@/components/pets/AddPetDialog";
 import EditPetDialog from "@/components/pets/EditPetDialog";
 import EmptyPetState from "@/components/pets/EmptyPetState";
 import PetCard from "@/components/pets/PetCard";
 import { Pet } from "@/components/pets/EditPetDialog";
+import { Link } from "react-router-dom";
 
 const UserPets = () => {
   const { getUserPets, deletePet } = useAuth();
@@ -21,11 +22,21 @@ const UserPets = () => {
   
   // Initial pet load and refresh function
   useEffect(() => {
-    setPets(getUserPets());
-  }, [getUserPets]);
+    refreshPets();
+  }, []);
   
   const refreshPets = () => {
-    setPets(getUserPets());
+    try {
+      const userPets = getUserPets();
+      setPets(userPets);
+    } catch (error) {
+      console.error("Error fetching pets:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load your pets. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleDeletePet = (pet: Pet) => {
@@ -69,16 +80,24 @@ const UserPets = () => {
         {pets.length === 0 ? (
           <EmptyPetState onAddPet={() => setIsAddDialogOpen(true)} />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {pets.map((pet) => (
-              <PetCard 
-                key={pet.id} 
-                pet={pet} 
-                onEdit={startEditPet} 
-                onDelete={handleDeletePet} 
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {pets.map((pet) => (
+                <PetCard 
+                  key={pet.id} 
+                  pet={pet} 
+                  onEdit={startEditPet} 
+                  onDelete={handleDeletePet} 
+                />
+              ))}
+            </div>
+            
+            <div className="mt-8 text-center">
+              <Link to="/appointment" className="text-pet-blue-dark hover:underline">
+                Schedule an appointment for your pet →
+              </Link>
+            </div>
+          </>
         )}
       </div>
       
