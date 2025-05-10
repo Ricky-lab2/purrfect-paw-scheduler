@@ -38,6 +38,20 @@ const Appointment = () => {
     }
   };
   
+  // Get species icon based on pet type
+  const getSpeciesIcon = (species: string) => {
+    switch(species) {
+      case "dog": return "🐕";
+      case "cat": return "🐈"; 
+      case "bird": return "🦜";
+      case "rabbit": return "🐇";
+      case "hamster": return "🐹";
+      case "fish": return "🐠";
+      case "reptile": return "🦎";
+      default: return "🐾";
+    }
+  };
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Confirmed": return "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300";
@@ -95,7 +109,9 @@ const Appointment = () => {
                       <div key={apt.id} className="p-3 border rounded-lg">
                         <div className="flex justify-between items-start">
                           <div>
-                            <p className="font-medium">{apt.petName} - {apt.service}</p>
+                            <p className="font-medium">
+                              {apt.petName} {apt.petSpecies && getSpeciesIcon(apt.petSpecies)} - {apt.service}
+                            </p>
                             <p className="text-xs text-gray-500">
                               {new Date(apt.date).toLocaleDateString()} at {apt.time}
                             </p>

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 type ServiceType = "checkup" | "vaccination" | "grooming" | "surgery" | "deworming";
 type TimeSlot = "morning" | "afternoon" | "evening";
 type PetGender = "male" | "female";
+type PetSpecies = "dog" | "cat" | "bird" | "rabbit" | "hamster" | "fish" | "reptile" | "other";
 
 type Pet = {
   id: string;
@@ -34,6 +35,7 @@ export function AppointmentForm() {
     petName: "",
     petAge: "",
     petGender: "" as PetGender,
+    petSpecies: "" as PetSpecies,
     email: user?.email || "",
     phone: user?.phone || "",
     serviceType: "" as ServiceType,
@@ -73,6 +75,7 @@ export function AppointmentForm() {
           ...prev,
           petName: pet.name,
           petGender: pet.gender,
+          petSpecies: pet.type as PetSpecies,
           petAge: calculatePetAge(pet.birthDate)
         }));
       }
@@ -91,7 +94,7 @@ export function AppointmentForm() {
 
   const nextStep = () => {
     if (step === 1) {
-      if (!formData.name || !formData.petName || !formData.email || !formData.phone || !formData.petAge || !formData.petGender) {
+      if (!formData.name || !formData.petName || !formData.email || !formData.phone || !formData.petAge || !formData.petGender || !formData.petSpecies) {
         toast({
           title: "Missing information",
           description: "Please fill out all required fields",
@@ -137,6 +140,7 @@ export function AppointmentForm() {
         ownerName: formData.name,
         petAge: formData.petAge,
         petGender: formData.petGender,
+        petSpecies: formData.petSpecies,
         email: formData.email,
         phone: formData.phone,
         service: formData.serviceType,
@@ -182,6 +186,20 @@ export function AppointmentForm() {
     grooming: "$40 - $120",
     surgery: "$200 - $2000+",
     deworming: "$15 - $50"
+  };
+
+  // Species icon mapping
+  const getSpeciesIcon = (species: string) => {
+    switch(species) {
+      case "dog": return "🐕";
+      case "cat": return "🐈"; 
+      case "bird": return "🦜";
+      case "rabbit": return "🐇";
+      case "hamster": return "🐹";
+      case "fish": return "🐠";
+      case "reptile": return "🦎";
+      default: return "🐾";
+    }
   };
 
   return (
@@ -300,7 +318,7 @@ export function AppointmentForm() {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label htmlFor="petAge" className="block text-sm font-medium text-gray-700 mb-1">
                   Pet Age*
@@ -339,6 +357,31 @@ export function AppointmentForm() {
                   <option value="">Select Gender</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
+                </select>
+              </div>
+              
+              <div>
+                <label htmlFor="petSpecies" className="block text-sm font-medium text-gray-700 mb-1">
+                  Pet Species*
+                </label>
+                <select
+                  id="petSpecies"
+                  name="petSpecies"
+                  value={formData.petSpecies}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pet-blue"
+                  required
+                  disabled={!!selectedPet}
+                >
+                  <option value="">Select Species</option>
+                  <option value="dog">Dog 🐕</option>
+                  <option value="cat">Cat 🐈</option>
+                  <option value="bird">Bird 🦜</option>
+                  <option value="rabbit">Rabbit 🐇</option>
+                  <option value="hamster">Hamster 🐹</option>
+                  <option value="fish">Fish 🐠</option>
+                  <option value="reptile">Reptile 🦎</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
             </div>
@@ -661,6 +704,15 @@ export function AppointmentForm() {
                 
                 <div className="text-gray-500">Pet Name:</div>
                 <div className="font-medium">{formData.petName}</div>
+                
+                <div className="text-gray-500">Pet Species:</div>
+                <div className="font-medium capitalize">
+                  {formData.petSpecies && (
+                    <span>
+                      {getSpeciesIcon(formData.petSpecies)} {formData.petSpecies}
+                    </span>
+                  )}
+                </div>
                 
                 <div className="text-gray-500">Pet Age:</div>
                 <div className="font-medium">{formData.petAge}</div>

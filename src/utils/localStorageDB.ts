@@ -1,146 +1,74 @@
+const APPOINTMENTS_KEY = "appointments";
 
-// Types for our booking data
-export interface Appointment {
-  id: string;
-  petName: string;
-  ownerName: string;
-  petAge: string;
-  petGender: string;
-  email: string;
-  phone: string;
-  service: string;
-  date: string;
-  timeSlot: string;
-  time: string; // For display purposes
-  status: "Pending" | "Confirmed" | "Completed" | "Cancelled";
-  additionalInfo?: string;
-  isUrgent?: boolean;
-  isFirstTime?: boolean;
-  createdAt: string;
-}
-
-// Generate a simple ID
-export const generateId = (): string => {
-  return `APT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-};
-
-// Get all appointments
-export const getAppointments = (): Appointment[] => {
+export const getAppointments = () => {
   try {
-    const appointments = localStorage.getItem('appointments');
+    const appointments = localStorage.getItem(APPOINTMENTS_KEY);
     return appointments ? JSON.parse(appointments) : [];
   } catch (error) {
-    console.error('Error getting appointments:', error);
+    console.error("Error getting appointments from localStorage:", error);
     return [];
   }
 };
 
-// Save an appointment
-export const saveAppointment = (appointment: Omit<Appointment, 'id' | 'status' | 'time' | 'createdAt'>): Appointment => {
-  try {
-    const appointments = getAppointments();
-    
-    // Map timeSlot to display time
-    const timeMap: Record<string, string> = {
-      morning: '9:00 AM',
-      afternoon: '1:00 PM',
-      evening: '5:00 PM'
-    };
-    
-    const newAppointment: Appointment = {
-      ...appointment,
-      id: generateId(),
-      status: 'Pending',
-      time: timeMap[appointment.timeSlot as keyof typeof timeMap] || '9:00 AM',
-      createdAt: new Date().toISOString()
-    };
-    
-    appointments.push(newAppointment);
-    localStorage.setItem('appointments', JSON.stringify(appointments));
-    
-    return newAppointment;
-  } catch (error) {
-    console.error('Error saving appointment:', error);
-    throw error;
-  }
+// Add petSpecies to the appointment type
+export type Appointment = {
+  id: string;
+  petName: string;
+  petAge: string;
+  petGender: string;
+  petSpecies: string; // Added pet species field
+  ownerName: string;
+  email: string;
+  phone: string;
+  service: string;
+  date: string;
+  time?: string;
+  timeSlot?: string;
+  additionalInfo?: string;
+  status: string;
+  createdAt: number;
+  isUrgent?: boolean;
+  isFirstTime?: boolean;
 };
 
-// Update an appointment status
-export const updateAppointmentStatus = (id: string, status: Appointment['status']): boolean => {
-  try {
-    const appointments = getAppointments();
-    const index = appointments.findIndex(apt => apt.id === id);
-    
-    if (index !== -1) {
-      appointments[index].status = status;
-      localStorage.setItem('appointments', JSON.stringify(appointments));
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error('Error updating appointment status:', error);
+type AppointmentInput = Omit<Appointment, "id" | "status" | "createdAt">;
+
+export const updateAppointmentStatus = (id: string, status: string) => {
+  const appointments = getAppointments();
+  const appointmentIndex = appointments.findIndex((apt) => apt.id === id);
+
+  if (appointmentIndex === -1) {
+    console.error(`Appointment with id ${id} not found`);
     return false;
   }
+
+  appointments[appointmentIndex] = {
+    ...appointments[appointmentIndex],
+    status: status,
+  };
+
+  localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(appointments));
+  return true;
 };
 
-// Delete an appointment
-export const deleteAppointment = (id: string): boolean => {
-  try {
-    const appointments = getAppointments();
-    const filteredAppointments = appointments.filter(apt => apt.id !== id);
-    
-    if (filteredAppointments.length !== appointments.length) {
-      localStorage.setItem('appointments', JSON.stringify(filteredAppointments));
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error('Error deleting appointment:', error);
-    return false;
-  }
+export const saveAppointment = (appointment: AppointmentInput): Appointment => {
+  const appointments = getAppointments();
+  
+  const newAppointment: Appointment = {
+    id: `apt-${Date.now()}`,
+    ...appointment,
+    status: "Pending",
+    createdAt: Date.now()
+  };
+  
+  appointments.push(newAppointment);
+  localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(appointments));
+  
+  return newAppointment;
 };
 
-// Seed some initial appointment data if none exists
-export const seedInitialData = (): void => {
-  if (getAppointments().length === 0) {
-    const sampleAppointments: Omit<Appointment, 'id' | 'status' | 'time' | 'createdAt'>[] = [
-      {
-        petName: "Max",
-        ownerName: "John Doe",
-        petAge: "3 years",
-        petGender: "male",
-        email: "john@example.com",
-        phone: "555-1234",
-        service: "checkup",
-        date: "2025-04-06",
-        timeSlot: "morning",
-        additionalInfo: "Annual checkup"
-      },
-      {
-        petName: "Luna",
-        ownerName: "Sarah Johnson",
-        petAge: "2 years",
-        petGender: "female",
-        email: "sarah@example.com",
-        phone: "555-5678",
-        service: "vaccination",
-        date: "2025-04-06",
-        timeSlot: "afternoon",
-        isFirstTime: true
-      },
-      {
-        petName: "Charlie",
-        ownerName: "Michael Smith",
-        petAge: "5 years",
-        petGender: "male",
-        email: "michael@example.com",
-        phone: "555-9012",
-        service: "grooming",
-        date: "2025-04-07",
-        timeSlot: "evening"
-      }
-    ];
-    
-    sampleAppointments.forEach(apt => saveAppointment(apt));
-  }
+export const deleteAppointment = (id: string) => {
+  const appointments = getAppointments();
+  const updatedAppointments = appointments.filter((apt) => apt.id !== id);
+  localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(updatedAppointments));
 };
