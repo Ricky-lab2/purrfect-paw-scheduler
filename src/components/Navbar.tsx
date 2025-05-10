@@ -166,10 +166,10 @@ export function Navbar() {
                     <Link to="/profile" className="block px-3 py-2 text-sm hover:bg-pet-gray dark:hover:bg-gray-800 rounded-md dark:text-white">
                       Your Profile
                     </Link>
-                    <Link to="/pets" className="block px-3 py-2 text-sm hover:bg-pet-gray dark:hover:bg-gray-800 rounded-md dark:text-white">
+                    <Link to="/my-pets" className="block px-3 py-2 text-sm hover:bg-pet-gray dark:hover:bg-gray-800 rounded-md dark:text-white">
                       My Pets
                     </Link>
-                    <Link to="/appointments" className="block px-3 py-2 text-sm hover:bg-pet-gray dark:hover:bg-gray-800 rounded-md dark:text-white">
+                    <Link to="/my-appointments" className="block px-3 py-2 text-sm hover:bg-pet-gray dark:hover:bg-gray-800 rounded-md dark:text-white">
                       My Appointments
                     </Link>
                     
@@ -256,13 +256,28 @@ export function Navbar() {
                     <Settings size={18} />
                     <span className="text-sm">Settings</span>
                   </button>
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-pet-gray dark:hover:bg-gray-800 dark:text-white">
+                  <Link to="/profile" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-pet-gray dark:hover:bg-gray-800 dark:text-white">
                     <UserCircle size={18} />
                     <span className="text-sm">Profile</span>
-                  </button>
+                  </Link>
                 </div>
                 
-                {/* Add Admin Link to mobile menu for admin users */}
+                {/* Add links for My Pets and My Appointments in mobile menu */}
+                <Link
+                  to="/my-pets"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-pet-gray dark:hover:bg-gray-800 dark:text-white"
+                >
+                  <span className="text-sm">My Pets</span>
+                </Link>
+                
+                <Link
+                  to="/my-appointments"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-pet-gray dark:hover:bg-gray-800 dark:text-white"
+                >
+                  <span className="text-sm">My Appointments</span>
+                </Link>
+                
+                {/* Admin Link for admin users */}
                 {isAdmin && (
                   <Link
                     to="/admin"
