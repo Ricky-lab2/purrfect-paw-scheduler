@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,13 +65,20 @@ export function AppointmentForm() {
   const onSubmit = async (data: FormData) => {
     try {
       const appointmentData = {
-        ...data,
+        petName: data.petName,
         petSpecies: data.petSpecies === "reptile" && data.reptileType 
           ? `reptile:${data.reptileType}` 
           : data.petSpecies,
+        ownerName: data.ownerName,
+        email: data.email,
+        phone: data.phone,
+        service: data.service,
+        date: data.date,
+        timeSlot: data.timeSlot,
+        diagnosis: data.diagnosis,
+        additionalInfo: data.additionalInfo || "",
         petAge: "",
         petGender: "",
-        status: "Pending" as const,
       };
 
       await saveAppointment(appointmentData);
