@@ -1,5 +1,4 @@
 
-
 const APPOINTMENTS_KEY = "appointments";
 
 export const getAppointments = () => {
@@ -16,8 +15,8 @@ export const getAppointments = () => {
 export type Appointment = {
   id: string;
   petName: string;
-  petAge: string;
-  petGender: string;
+  petAge?: string;
+  petGender?: string;
   petSpecies: string; // Can include "other: specific type" format
   ownerName: string;
   email: string;
@@ -26,6 +25,7 @@ export type Appointment = {
   date: string;
   time?: string;
   timeSlot?: string;
+  diagnosis?: string;
   additionalInfo?: string;
   status: string;
   createdAt: number;

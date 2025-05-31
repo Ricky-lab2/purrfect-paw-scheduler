@@ -68,6 +68,8 @@ export function AppointmentForm() {
         petSpecies: data.petSpecies === "reptile" && data.reptileType 
           ? `reptile:${data.reptileType}` 
           : data.petSpecies,
+        petAge: "",
+        petGender: "",
         status: "Pending" as const,
       };
 
