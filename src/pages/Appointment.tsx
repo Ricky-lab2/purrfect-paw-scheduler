@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { AppointmentForm } from "@/components/AppointmentForm";
+import { DoctorCommunication } from "@/components/DoctorCommunication";
+import { FAQSection } from "@/components/FAQSection";
 import { CheckCircle2, Search } from "lucide-react";
 import { getAppointments, Appointment as AppointmentType } from "@/utils/localStorageDB";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,13 +41,24 @@ const Appointment = () => {
   
   // Get species icon based on pet type
   const getSpeciesIcon = (species: string | undefined) => {
-    // Add null check here
     if (!species) {
-      return "🐾"; // Default icon if species is undefined
+      return "🐾";
+    }
+    
+    if (species.startsWith("reptile:")) {
+      const reptileType = species.substring(8);
+      switch(reptileType) {
+        case "snake": return "🐍";
+        case "lizard": return "🦎";
+        case "turtle": return "🐢";
+        case "gecko": return "🦎";
+        case "iguana": return "🦎";
+        default: return "🦎";
+      }
     }
     
     if (species.startsWith("other:")) {
-      return "🐾"; // Generic paw for other pet types
+      return "🐾";
     }
     
     switch(species) {
@@ -72,8 +85,12 @@ const Appointment = () => {
   
   // Format pet species for display
   const formatPetSpecies = (species: string) => {
+    if (species.startsWith("reptile:")) {
+      const reptileType = species.substring(8);
+      return `${reptileType.charAt(0).toUpperCase() + reptileType.slice(1)} (Reptile)`;
+    }
     if (species.startsWith("other:")) {
-      return species.substring(7); // Remove "other: " prefix
+      return species.substring(7);
     }
     return species;
   };
@@ -97,30 +114,29 @@ const Appointment = () => {
           <div className="text-center max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">Book an Appointment</h1>
             <p className="text-lg text-muted-foreground">
-              Schedule a visit for your pet with our easy-to-use booking system. We'll confirm your appointment shortly.
+              Schedule a visit for your pet with our comprehensive booking system. Get instant consultations and expert care.
             </p>
           </div>
         </div>
       </section>
       
-      {/* Appointment Form Section */}
+      {/* Main Content */}
       <section className="section-container">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+          {/* Left Column - Forms */}
+          <div className="lg:col-span-2 space-y-8">
             <AppointmentForm />
+            <DoctorCommunication />
           </div>
           
+          {/* Right Column - Info & FAQ */}
           <div className="space-y-6">
-            {/* Check Existing Appointments */}
+            {/* Your Recent Appointments */}
             <div className="card-glass p-6">
-              <h3 className="text-xl font-medium mb-4">Your Appointments</h3>
+              <h3 className="text-xl font-medium mb-4">Your Recent Appointments</h3>
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Here's a quick view of your recent appointments.
-                </p>
-                
                 {userAppointments.length > 0 ? (
-                  <div className="space-y-3 mt-4">
+                  <div className="space-y-3">
                     {userAppointments.slice(0, 3).map((apt) => (
                       <div key={apt.id} className="p-3 border rounded-lg">
                         <div className="flex justify-between items-start">
@@ -131,6 +147,11 @@ const Appointment = () => {
                             <p className="text-xs text-gray-500">
                               {new Date(apt.date).toLocaleDateString()} at {apt.time || apt.timeSlot}
                             </p>
+                            {apt.diagnosis && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Reason: {apt.diagnosis}
+                              </p>
+                            )}
                           </div>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(apt.status)}`}>
                             {apt.status}
@@ -141,7 +162,7 @@ const Appointment = () => {
                     
                     {userAppointments.length > 3 && (
                       <div className="text-center mt-2">
-                        <a href="/user/appointments" className="text-sm text-pet-blue-dark hover:underline">
+                        <a href="/my-appointments" className="text-sm text-pet-blue-dark hover:underline">
                           View all appointments →
                         </a>
                       </div>
@@ -152,7 +173,11 @@ const Appointment = () => {
                 )}
               </div>
             </div>
+
+            {/* FAQ Section */}
+            <FAQSection />
             
+            {/* Additional Services */}
             <div className="card-glass p-6">
               <h3 className="text-xl font-medium mb-4">Additional Services</h3>
               <div className="space-y-4">
@@ -185,6 +210,7 @@ const Appointment = () => {
               </div>
             </div>
             
+            {/* Appointment Information */}
             <div className="card-glass p-6">
               <h3 className="text-xl font-medium mb-4">Appointment Information</h3>
               <div className="space-y-4">
@@ -217,6 +243,7 @@ const Appointment = () => {
               </div>
             </div>
             
+            {/* Preparing for Your Visit */}
             <div className="card-glass p-6">
               <h3 className="text-xl font-medium mb-4">Preparing for Your Visit</h3>
               <div className="space-y-3">
