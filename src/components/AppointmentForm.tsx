@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +17,9 @@ const formSchema = z.object({
   petName: z.string().min(1, "Pet name is required"),
   petSpecies: z.string().min(1, "Pet species is required"),
   reptileType: z.string().optional(),
+  otherSpecies: z.string().optional(),
+  breed: z.string().optional(),
+  weight: z.string().optional(),
   ownerName: z.string().min(1, "Owner name is required"),
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(1, "Phone number is required"),
@@ -25,6 +27,7 @@ const formSchema = z.object({
   date: z.string().min(1, "Please select a date"),
   timeSlot: z.string().min(1, "Please select a time slot"),
   diagnosis: z.string().min(1, "Please describe the reason for the visit"),
+  bloodTest: z.string().optional(),
   additionalInfo: z.string().optional(),
 });
 
@@ -34,6 +37,8 @@ export function AppointmentForm() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [showReptileType, setShowReptileType] = useState(false);
+  const [showOtherSpecies, setShowOtherSpecies] = useState(false);
+  const [showBreed, setShowBreed] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -41,6 +46,9 @@ export function AppointmentForm() {
       petName: "",
       petSpecies: "",
       reptileType: "",
+      otherSpecies: "",
+      breed: "",
+      weight: "",
       ownerName: user?.name || "",
       email: user?.email || "",
       phone: "",
@@ -48,27 +56,44 @@ export function AppointmentForm() {
       date: "",
       timeSlot: "",
       diagnosis: "",
+      bloodTest: "",
       additionalInfo: "",
     },
   });
 
   const watchedSpecies = form.watch("petSpecies");
 
-  // Show reptile type field when reptile is selected
+  // Show/hide conditional fields based on species selection
   React.useEffect(() => {
     setShowReptileType(watchedSpecies === "reptile");
+    setShowOtherSpecies(watchedSpecies === "other");
+    setShowBreed(watchedSpecies === "dog" || watchedSpecies === "cat");
+    
+    // Clear fields when species changes
     if (watchedSpecies !== "reptile") {
       form.setValue("reptileType", "");
+    }
+    if (watchedSpecies !== "other") {
+      form.setValue("otherSpecies", "");
+    }
+    if (watchedSpecies !== "dog" && watchedSpecies !== "cat") {
+      form.setValue("breed", "");
     }
   }, [watchedSpecies, form]);
 
   const onSubmit = async (data: FormData) => {
     try {
+      let finalSpecies = data.petSpecies;
+      
+      if (data.petSpecies === "reptile" && data.reptileType) {
+        finalSpecies = `reptile:${data.reptileType}`;
+      } else if (data.petSpecies === "other" && data.otherSpecies) {
+        finalSpecies = `other:${data.otherSpecies}`;
+      }
+
       const appointmentData = {
         petName: data.petName,
-        petSpecies: data.petSpecies === "reptile" && data.reptileType 
-          ? `reptile:${data.reptileType}` 
-          : data.petSpecies,
+        petSpecies: finalSpecies,
         ownerName: data.ownerName,
         email: data.email,
         phone: data.phone,
@@ -102,6 +127,18 @@ export function AppointmentForm() {
   const timeSlots = [
     "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
     "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"
+  ];
+
+  const dogBreeds = [
+    "Golden Retriever", "Labrador Retriever", "German Shepherd", "Bulldog", 
+    "Poodle", "Beagle", "Rottweiler", "Yorkshire Terrier", "Dachshund", 
+    "Siberian Husky", "Boxer", "Border Collie", "Chihuahua", "Shih Tzu", "Mixed Breed", "Other"
+  ];
+
+  const catBreeds = [
+    "Persian", "Maine Coon", "Siamese", "Ragdoll", "British Shorthair", 
+    "Abyssinian", "Birman", "Oriental Shorthair", "American Shorthair", 
+    "Scottish Fold", "Sphynx", "Russian Blue", "Mixed Breed", "Other"
   ];
 
   return (
@@ -160,6 +197,7 @@ export function AppointmentForm() {
                           <SelectItem value="hamster">Hamster</SelectItem>
                           <SelectItem value="fish">Fish</SelectItem>
                           <SelectItem value="reptile">Reptile</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -199,6 +237,81 @@ export function AppointmentForm() {
                 />
               )}
 
+              {/* Other Species Comment Box */}
+              {showOtherSpecies && (
+                <FormField
+                  control={form.control}
+                  name="otherSpecies"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Please specify the type of pet</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Ferret, Guinea Pig, etc." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Breed Selection for Dogs and Cats */}
+              {showBreed && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="breed"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Breed</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select breed" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {(watchedSpecies === "dog" ? dogBreeds : catBreeds).map((breed) => (
+                              <SelectItem key={breed} value={breed.toLowerCase().replace(/ /g, "-")}>
+                                {breed}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="weight"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Weight</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select weight range" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="small">Small (5-10 kg)</SelectItem>
+                            <SelectItem value="medium">Medium (10-25 kg)</SelectItem>
+                            <SelectItem value="large">Large (25-45 kg)</SelectItem>
+                            <SelectItem value="extra-large">Extra Large (45+ kg)</SelectItem>
+                            <SelectItem value="unknown">Unknown</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Select the approximate weight range of your pet
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
               {/* Pet Diagnosis/Reason for Visit */}
               <FormField
                 control={form.control}
@@ -231,6 +344,33 @@ export function AppointmentForm() {
                     </Select>
                     <FormDescription>
                       Please select the main reason for bringing your pet to the clinic
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Blood Test Selection */}
+              <FormField
+                control={form.control}
+                name="bloodTest"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Blood Chemistry Test (Optional)</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select blood test type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No blood test needed</SelectItem>
+                        <SelectItem value="basic">Basic Blood Chemistry - ₱1,200</SelectItem>
+                        <SelectItem value="complete">Complete Blood Chemistry - ₱2,500</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Blood tests help assess your pet's overall health and organ function
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
