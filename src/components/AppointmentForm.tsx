@@ -17,8 +17,10 @@ const formSchema = z.object({
   petName: z.string().min(1, "Pet name is required"),
   petSpecies: z.string().min(1, "Pet species is required"),
   reptileType: z.string().optional(),
+  reptileTypeOther: z.string().optional(),
   otherSpecies: z.string().optional(),
   breed: z.string().optional(),
+  breedOther: z.string().optional(),
   weight: z.string().optional(),
   ownerName: z.string().min(1, "Owner name is required"),
   email: z.string().email("Please enter a valid email"),
@@ -37,8 +39,10 @@ export function AppointmentForm() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [showReptileType, setShowReptileType] = useState(false);
+  const [showReptileTypeOther, setShowReptileTypeOther] = useState(false);
   const [showOtherSpecies, setShowOtherSpecies] = useState(false);
   const [showBreed, setShowBreed] = useState(false);
+  const [showBreedOther, setShowBreedOther] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -46,8 +50,10 @@ export function AppointmentForm() {
       petName: "",
       petSpecies: "",
       reptileType: "",
+      reptileTypeOther: "",
       otherSpecies: "",
       breed: "",
+      breedOther: "",
       weight: "",
       ownerName: user?.name || "",
       email: user?.email || "",
@@ -62,6 +68,8 @@ export function AppointmentForm() {
   });
 
   const watchedSpecies = form.watch("petSpecies");
+  const watchedReptileType = form.watch("reptileType");
+  const watchedBreed = form.watch("breed");
 
   // Show/hide conditional fields based on species selection
   React.useEffect(() => {
@@ -72,28 +80,57 @@ export function AppointmentForm() {
     // Clear fields when species changes
     if (watchedSpecies !== "reptile") {
       form.setValue("reptileType", "");
+      form.setValue("reptileTypeOther", "");
     }
     if (watchedSpecies !== "other") {
       form.setValue("otherSpecies", "");
     }
     if (watchedSpecies !== "dog" && watchedSpecies !== "cat") {
       form.setValue("breed", "");
+      form.setValue("breedOther", "");
     }
   }, [watchedSpecies, form]);
+
+  // Show/hide reptile type other field
+  React.useEffect(() => {
+    setShowReptileTypeOther(watchedReptileType === "other");
+    if (watchedReptileType !== "other") {
+      form.setValue("reptileTypeOther", "");
+    }
+  }, [watchedReptileType, form]);
+
+  // Show/hide breed other field
+  React.useEffect(() => {
+    setShowBreedOther(watchedBreed === "other");
+    if (watchedBreed !== "other") {
+      form.setValue("breedOther", "");
+    }
+  }, [watchedBreed, form]);
 
   const onSubmit = async (data: FormData) => {
     try {
       let finalSpecies = data.petSpecies;
       
       if (data.petSpecies === "reptile" && data.reptileType) {
-        finalSpecies = `reptile:${data.reptileType}`;
+        if (data.reptileType === "other" && data.reptileTypeOther) {
+          finalSpecies = `reptile:${data.reptileTypeOther}`;
+        } else {
+          finalSpecies = `reptile:${data.reptileType}`;
+        }
       } else if (data.petSpecies === "other" && data.otherSpecies) {
         finalSpecies = `other:${data.otherSpecies}`;
+      }
+
+      let finalBreed = data.breed;
+      if (data.breed === "other" && data.breedOther) {
+        finalBreed = data.breedOther;
       }
 
       const appointmentData = {
         petName: data.petName,
         petSpecies: finalSpecies,
+        breed: finalBreed || "",
+        weight: data.weight || "",
         ownerName: data.ownerName,
         email: data.email,
         phone: data.phone,
@@ -101,9 +138,11 @@ export function AppointmentForm() {
         date: data.date,
         timeSlot: data.timeSlot,
         diagnosis: data.diagnosis,
+        bloodTest: data.bloodTest || "",
         additionalInfo: data.additionalInfo || "",
         petAge: "",
         petGender: "",
+        status: "Pending" as const,
       };
 
       await saveAppointment(appointmentData);
@@ -237,6 +276,23 @@ export function AppointmentForm() {
                 />
               )}
 
+              {/* Reptile Type Other Comment Box */}
+              {showReptileTypeOther && (
+                <FormField
+                  control={form.control}
+                  name="reptileTypeOther"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Please specify the type of reptile</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Monitor Lizard, Corn Snake, etc." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               {/* Other Species Comment Box */}
               {showOtherSpecies && (
                 <FormField
@@ -310,6 +366,23 @@ export function AppointmentForm() {
                     )}
                   />
                 </div>
+              )}
+
+              {/* Breed Other Comment Box */}
+              {showBreedOther && (
+                <FormField
+                  control={form.control}
+                  name="breedOther"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Please specify the breed</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter the specific breed name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               )}
 
               {/* Pet Diagnosis/Reason for Visit */}
