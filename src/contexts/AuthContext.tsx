@@ -21,7 +21,7 @@ type Pet = {
 
 type AuthContextType = {
   user: User | null;
-  login: (email: string, password: string, remember: boolean = true) => Promise<boolean>;
+  login: (email: string, password: string, remember?: boolean) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUserProfile: (updates: Partial<User>) => void;
