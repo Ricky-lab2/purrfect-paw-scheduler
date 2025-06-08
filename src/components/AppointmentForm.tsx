@@ -12,6 +12,7 @@ import { CalendarDays, Clock, PawPrint, Stethoscope } from "lucide-react";
 import { saveAppointment } from "@/utils/localStorageDB";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { AppointmentSuccessDialog } from "@/components/AppointmentSuccessDialog";
 
 const formSchema = z.object({
   petName: z.string().min(1, "Pet name is required"),
@@ -43,6 +44,8 @@ export function AppointmentForm() {
   const [showOtherSpecies, setShowOtherSpecies] = useState(false);
   const [showBreed, setShowBreed] = useState(false);
   const [showBreedOther, setShowBreedOther] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [appointmentDetails, setAppointmentDetails] = useState<any>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -147,11 +150,22 @@ export function AppointmentForm() {
 
       await saveAppointment(appointmentData);
       
-      toast({
-        title: "Appointment Booked!",
-        description: "We'll contact you shortly to confirm your appointment.",
+      // Set appointment details for the success dialog
+      setAppointmentDetails({
+        petName: data.petName,
+        petSpecies: finalSpecies,
+        ownerName: data.ownerName,
+        email: data.email,
+        phone: data.phone,
+        service: data.service,
+        date: data.date,
+        timeSlot: data.timeSlot,
+        diagnosis: data.diagnosis,
       });
-
+      
+      // Show success dialog instead of toast
+      setShowSuccessDialog(true);
+      
       form.reset();
     } catch (error) {
       console.error("Error saving appointment:", error);
@@ -160,6 +174,40 @@ export function AppointmentForm() {
         description: "Failed to book appointment. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleBookAgain = () => {
+    setShowSuccessDialog(false);
+    // Form is already reset, so user can book again
+  };
+
+  const handleChangeSchedule = () => {
+    setShowSuccessDialog(false);
+    // Pre-fill the form with the last appointment data (except date and time)
+    if (appointmentDetails) {
+      form.setValue("petName", appointmentDetails.petName);
+      form.setValue("ownerName", appointmentDetails.ownerName);
+      form.setValue("email", appointmentDetails.email);
+      form.setValue("phone", appointmentDetails.phone);
+      form.setValue("service", appointmentDetails.service);
+      form.setValue("diagnosis", appointmentDetails.diagnosis);
+      
+      // Handle species properly
+      if (appointmentDetails.petSpecies.startsWith("reptile:")) {
+        form.setValue("petSpecies", "reptile");
+        const reptileType = appointmentDetails.petSpecies.substring(8);
+        form.setValue("reptileType", reptileType);
+      } else if (appointmentDetails.petSpecies.startsWith("other:")) {
+        form.setValue("petSpecies", "other");
+        form.setValue("otherSpecies", appointmentDetails.petSpecies.substring(6));
+      } else {
+        form.setValue("petSpecies", appointmentDetails.petSpecies);
+      }
+      
+      // Clear date and time to force user to select new ones
+      form.setValue("date", "");
+      form.setValue("timeSlot", "");
     }
   };
 
@@ -181,154 +229,393 @@ export function AppointmentForm() {
   ];
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <PawPrint className="h-5 w-5 text-pet-blue-dark" />
-          Book an Appointment
-        </CardTitle>
-        <CardDescription>
-          Fill out the form below to schedule a visit for your pet
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Pet Information Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium flex items-center gap-2">
-                <PawPrint size={18} />
-                Pet Information
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PawPrint className="h-5 w-5 text-pet-blue-dark" />
+            Book an Appointment
+          </CardTitle>
+          <CardDescription>
+            Fill out the form below to schedule a visit for your pet
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Pet Information Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium flex items-center gap-2">
+                  <PawPrint size={18} />
+                  Pet Information
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="petName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Pet Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter your pet's name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="petSpecies"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Pet Species</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select species" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="dog">Dog</SelectItem>
+                            <SelectItem value="cat">Cat</SelectItem>
+                            <SelectItem value="bird">Bird</SelectItem>
+                            <SelectItem value="rabbit">Rabbit</SelectItem>
+                            <SelectItem value="hamster">Hamster</SelectItem>
+                            <SelectItem value="fish">Fish</SelectItem>
+                            <SelectItem value="reptile">Reptile</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Reptile Type Selection */}
+                {showReptileType && (
+                  <FormField
+                    control={form.control}
+                    name="reptileType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Type of Reptile</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select reptile type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="snake">Snake</SelectItem>
+                            <SelectItem value="lizard">Lizard</SelectItem>
+                            <SelectItem value="turtle">Turtle</SelectItem>
+                            <SelectItem value="gecko">Gecko</SelectItem>
+                            <SelectItem value="iguana">Iguana</SelectItem>
+                            <SelectItem value="bearded-dragon">Bearded Dragon</SelectItem>
+                            <SelectItem value="chameleon">Chameleon</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Reptile Type Other Comment Box */}
+                {showReptileTypeOther && (
+                  <FormField
+                    control={form.control}
+                    name="reptileTypeOther"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Please specify the type of reptile</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Monitor Lizard, Corn Snake, etc." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Other Species Comment Box */}
+                {showOtherSpecies && (
+                  <FormField
+                    control={form.control}
+                    name="otherSpecies"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Please specify the type of pet</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Ferret, Guinea Pig, etc." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Breed Selection for Dogs and Cats */}
+                {showBreed && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="breed"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Breed</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select breed" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {(watchedSpecies === "dog" ? dogBreeds : catBreeds).map((breed) => (
+                                <SelectItem key={breed} value={breed.toLowerCase().replace(/ /g, "-")}>
+                                  {breed}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="weight"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Weight</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select weight range" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="small">Small (5-10 kg)</SelectItem>
+                              <SelectItem value="medium">Medium (10-25 kg)</SelectItem>
+                              <SelectItem value="large">Large (25-45 kg)</SelectItem>
+                              <SelectItem value="extra-large">Extra Large (45+ kg)</SelectItem>
+                              <SelectItem value="unknown">Unknown</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Select the approximate weight range of your pet
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+
+                {/* Breed Other Comment Box */}
+                {showBreedOther && (
+                  <FormField
+                    control={form.control}
+                    name="breedOther"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Please specify the breed</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter the specific breed name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Pet Diagnosis/Reason for Visit */}
                 <FormField
                   control={form.control}
-                  name="petName"
+                  name="diagnosis"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Pet Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter your pet's name" {...field} />
-                      </FormControl>
+                      <FormLabel className="flex items-center gap-2">
+                        <Stethoscope size={16} />
+                        Reason for Visit / Pet Diagnosis
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select reason for visit" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="routine-checkup">Routine Checkup</SelectItem>
+                          <SelectItem value="vaccination">Vaccination</SelectItem>
+                          <SelectItem value="illness">Pet is Sick</SelectItem>
+                          <SelectItem value="injury">Injury/Accident</SelectItem>
+                          <SelectItem value="grooming">Grooming</SelectItem>
+                          <SelectItem value="dental">Dental Care</SelectItem>
+                          <SelectItem value="behavioral">Behavioral Issues</SelectItem>
+                          <SelectItem value="emergency">Emergency</SelectItem>
+                          <SelectItem value="follow-up">Follow-up Visit</SelectItem>
+                          <SelectItem value="surgery">Surgery</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Please select the main reason for bringing your pet to the clinic
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Blood Test Selection */}
                 <FormField
                   control={form.control}
-                  name="petSpecies"
+                  name="bloodTest"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Pet Species</FormLabel>
+                      <FormLabel>Blood Chemistry Test (Optional)</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select species" />
+                            <SelectValue placeholder="Select blood test type" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="dog">Dog</SelectItem>
-                          <SelectItem value="cat">Cat</SelectItem>
-                          <SelectItem value="bird">Bird</SelectItem>
-                          <SelectItem value="rabbit">Rabbit</SelectItem>
-                          <SelectItem value="hamster">Hamster</SelectItem>
-                          <SelectItem value="fish">Fish</SelectItem>
-                          <SelectItem value="reptile">Reptile</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                          <SelectItem value="none">No blood test needed</SelectItem>
+                          <SelectItem value="basic">Basic Blood Chemistry - ₱1,200</SelectItem>
+                          <SelectItem value="complete">Complete Blood Chemistry - ₱2,500</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormDescription>
+                        Blood tests help assess your pet's overall health and organ function
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              {/* Reptile Type Selection */}
-              {showReptileType && (
+              {/* Owner Information Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Owner Information</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="ownerName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Owner Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter your name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="Enter your email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
-                  name="reptileType"
+                  name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Type of Reptile</FormLabel>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter your phone number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Appointment Details Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium flex items-center gap-2">
+                  <CalendarDays size={18} />
+                  Appointment Details
+                </h3>
+                
+                <FormField
+                  control={form.control}
+                  name="service"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Service</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select reptile type" />
+                            <SelectValue placeholder="Select a service" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="snake">Snake</SelectItem>
-                          <SelectItem value="lizard">Lizard</SelectItem>
-                          <SelectItem value="turtle">Turtle</SelectItem>
-                          <SelectItem value="gecko">Gecko</SelectItem>
-                          <SelectItem value="iguana">Iguana</SelectItem>
-                          <SelectItem value="bearded-dragon">Bearded Dragon</SelectItem>
-                          <SelectItem value="chameleon">Chameleon</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                          <SelectItem value="General Consultation">General Consultation - ₱1,500</SelectItem>
+                          <SelectItem value="Vaccination">Vaccination - ₱800</SelectItem>
+                          <SelectItem value="Grooming">Pet Grooming - ₱2,000</SelectItem>
+                          <SelectItem value="Dental Care">Dental Care - ₱2,500</SelectItem>
+                          <SelectItem value="Surgery">Surgery - ₱8,000</SelectItem>
+                          <SelectItem value="Emergency Care">Emergency Care - ₱3,000</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              )}
 
-              {/* Reptile Type Other Comment Box */}
-              {showReptileTypeOther && (
-                <FormField
-                  control={form.control}
-                  name="reptileTypeOther"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Please specify the type of reptile</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., Monitor Lizard, Corn Snake, etc." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Other Species Comment Box */}
-              {showOtherSpecies && (
-                <FormField
-                  control={form.control}
-                  name="otherSpecies"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Please specify the type of pet</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., Ferret, Guinea Pig, etc." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Breed Selection for Dogs and Cats */}
-              {showBreed && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="breed"
+                    name="date"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Breed</FormLabel>
+                        <FormLabel>Preferred Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="timeSlot"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <Clock size={16} />
+                          Preferred Time
+                        </FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select breed" />
+                              <SelectValue placeholder="Select time slot" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {(watchedSpecies === "dog" ? dogBreeds : catBreeds).map((breed) => (
-                              <SelectItem key={breed} value={breed.toLowerCase().replace(/ /g, "-")}>
-                                {breed}
+                            {timeSlots.map((time) => (
+                              <SelectItem key={time} value={time}>
+                                {time}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -337,273 +624,44 @@ export function AppointmentForm() {
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="weight"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Weight</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select weight range" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="small">Small (5-10 kg)</SelectItem>
-                            <SelectItem value="medium">Medium (10-25 kg)</SelectItem>
-                            <SelectItem value="large">Large (25-45 kg)</SelectItem>
-                            <SelectItem value="extra-large">Extra Large (45+ kg)</SelectItem>
-                            <SelectItem value="unknown">Unknown</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Select the approximate weight range of your pet
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
-              )}
-
-              {/* Breed Other Comment Box */}
-              {showBreedOther && (
-                <FormField
-                  control={form.control}
-                  name="breedOther"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Please specify the breed</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter the specific breed name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Pet Diagnosis/Reason for Visit */}
-              <FormField
-                control={form.control}
-                name="diagnosis"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <Stethoscope size={16} />
-                      Reason for Visit / Pet Diagnosis
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select reason for visit" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="routine-checkup">Routine Checkup</SelectItem>
-                        <SelectItem value="vaccination">Vaccination</SelectItem>
-                        <SelectItem value="illness">Pet is Sick</SelectItem>
-                        <SelectItem value="injury">Injury/Accident</SelectItem>
-                        <SelectItem value="grooming">Grooming</SelectItem>
-                        <SelectItem value="dental">Dental Care</SelectItem>
-                        <SelectItem value="behavioral">Behavioral Issues</SelectItem>
-                        <SelectItem value="emergency">Emergency</SelectItem>
-                        <SelectItem value="follow-up">Follow-up Visit</SelectItem>
-                        <SelectItem value="surgery">Surgery</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Please select the main reason for bringing your pet to the clinic
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Blood Test Selection */}
-              <FormField
-                control={form.control}
-                name="bloodTest"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Blood Chemistry Test (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select blood test type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">No blood test needed</SelectItem>
-                        <SelectItem value="basic">Basic Blood Chemistry - ₱1,200</SelectItem>
-                        <SelectItem value="complete">Complete Blood Chemistry - ₱2,500</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Blood tests help assess your pet's overall health and organ function
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Owner Information Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Owner Information</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="ownerName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Owner Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter your name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}
-                  name="email"
+                  name="additionalInfo"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Additional Information</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="Enter your email" {...field} />
+                        <Textarea
+                          placeholder="Any additional information about your pet's condition or special requirements..."
+                          {...field}
+                        />
                       </FormControl>
+                      <FormDescription>
+                        Optional: Provide any additional details that might help us prepare for your visit
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your phone number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+              <Button type="submit" className="w-full bg-pet-blue-dark hover:bg-pet-blue-dark/90">
+                Book Appointment
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
 
-            {/* Appointment Details Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium flex items-center gap-2">
-                <CalendarDays size={18} />
-                Appointment Details
-              </h3>
-              
-              <FormField
-                control={form.control}
-                name="service"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Service</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a service" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="General Consultation">General Consultation - ₱1,500</SelectItem>
-                        <SelectItem value="Vaccination">Vaccination - ₱800</SelectItem>
-                        <SelectItem value="Grooming">Pet Grooming - ₱2,000</SelectItem>
-                        <SelectItem value="Dental Care">Dental Care - ₱2,500</SelectItem>
-                        <SelectItem value="Surgery">Surgery - ₱8,000</SelectItem>
-                        <SelectItem value="Emergency Care">Emergency Care - ₱3,000</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preferred Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="timeSlot"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Clock size={16} />
-                        Preferred Time
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select time slot" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {timeSlots.map((time) => (
-                            <SelectItem key={time} value={time}>
-                              {time}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="additionalInfo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Additional Information</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Any additional information about your pet's condition or special requirements..."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Optional: Provide any additional details that might help us prepare for your visit
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <Button type="submit" className="w-full bg-pet-blue-dark hover:bg-pet-blue-dark/90">
-              Book Appointment
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+      <AppointmentSuccessDialog
+        open={showSuccessDialog}
+        onOpenChange={setShowSuccessDialog}
+        appointmentDetails={appointmentDetails}
+        onBookAgain={handleBookAgain}
+        onChangeSchedule={handleChangeSchedule}
+      />
+    </>
   );
 }
