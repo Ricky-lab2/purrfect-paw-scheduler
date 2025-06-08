@@ -13,6 +13,7 @@ import { saveAppointment } from "@/utils/localStorageDB";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppointmentSuccessDialog } from "@/components/AppointmentSuccessDialog";
+import { AppointmentConfirmDialog } from "@/components/AppointmentConfirmDialog";
 
 const formSchema = z.object({
   petName: z.string().min(1, "Pet name is required"),
@@ -44,8 +45,10 @@ export function AppointmentForm() {
   const [showOtherSpecies, setShowOtherSpecies] = useState(false);
   const [showBreed, setShowBreed] = useState(false);
   const [showBreedOther, setShowBreedOther] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [appointmentDetails, setAppointmentDetails] = useState<any>(null);
+  const [pendingAppointmentData, setPendingAppointmentData] = useState<any>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -148,25 +151,44 @@ export function AppointmentForm() {
         status: "Pending" as const,
       };
 
-      await saveAppointment(appointmentData);
+      // Set pending data and show confirmation dialog
+      setPendingAppointmentData(appointmentData);
+      setShowConfirmDialog(true);
+    } catch (error) {
+      console.error("Error preparing appointment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to prepare appointment. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleConfirmAppointment = async () => {
+    if (!pendingAppointmentData) return;
+
+    try {
+      await saveAppointment(pendingAppointmentData);
       
       // Set appointment details for the success dialog
       setAppointmentDetails({
-        petName: data.petName,
-        petSpecies: finalSpecies,
-        ownerName: data.ownerName,
-        email: data.email,
-        phone: data.phone,
-        service: data.service,
-        date: data.date,
-        timeSlot: data.timeSlot,
-        diagnosis: data.diagnosis,
+        petName: pendingAppointmentData.petName,
+        petSpecies: pendingAppointmentData.petSpecies,
+        ownerName: pendingAppointmentData.ownerName,
+        email: pendingAppointmentData.email,
+        phone: pendingAppointmentData.phone,
+        service: pendingAppointmentData.service,
+        date: pendingAppointmentData.date,
+        timeSlot: pendingAppointmentData.timeSlot,
+        diagnosis: pendingAppointmentData.diagnosis,
       });
       
-      // Show success dialog instead of toast
+      // Close confirmation dialog and show success dialog
+      setShowConfirmDialog(false);
       setShowSuccessDialog(true);
       
       form.reset();
+      setPendingAppointmentData(null);
     } catch (error) {
       console.error("Error saving appointment:", error);
       toast({
@@ -175,6 +197,11 @@ export function AppointmentForm() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditAppointment = () => {
+    setShowConfirmDialog(false);
+    // User can continue editing the form
   };
 
   const handleBookAgain = () => {
@@ -648,12 +675,20 @@ export function AppointmentForm() {
               </div>
 
               <Button type="submit" className="w-full bg-pet-blue-dark hover:bg-pet-blue-dark/90">
-                Book Appointment
+                Review Appointment
               </Button>
             </form>
           </Form>
         </CardContent>
       </Card>
+
+      <AppointmentConfirmDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        appointmentData={pendingAppointmentData}
+        onConfirm={handleConfirmAppointment}
+        onEdit={handleEditAppointment}
+      />
 
       <AppointmentSuccessDialog
         open={showSuccessDialog}
