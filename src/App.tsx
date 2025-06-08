@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +12,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { initializeData } from "@/utils/seedData";
+import { NotificationProvider, useNotification } from "@/contexts/NotificationContext";
 
 // Initialize the data
 initializeData();
@@ -62,77 +62,92 @@ const AuthRedirect = () => {
 
 const queryClient = new QueryClient();
 
+// Notification wrapper component
+function NotificationWrapper() {
+  const { currentNotification, isVisible, hideNotification } = useNotification();
+  
+  return (
+    <NotificationPreview
+      show={isVisible}
+      appointment={currentNotification}
+      onClose={hideNotification}
+    />
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="light">
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthRedirect />
-            <div className="min-h-screen flex flex-col">
-              <Navbar />
-              <main className="flex-grow">
-                <Suspense fallback={
-                  <div className="flex items-center justify-center h-screen">
-                    <div className="animate-pulse">Loading...</div>
-                  </div>
-                }>
-                  <Routes>
-                    {/* Public Routes */}
-                    <Route path="/" element={<Index />} />
-                    <Route path="/services" element={<Services />} />
-                    <Route path="/faq" element={<FAQ />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    
-                    {/* Protected Customer Routes */}
-                    <Route path="/appointment" element={
-                      <ProtectedRoute>
-                        <Appointment />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/profile" element={
-                      <ProtectedRoute>
-                        <Profile />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/my-pets" element={
-                      <ProtectedRoute>
-                        <UserPets />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/my-appointments" element={
-                      <ProtectedRoute>
-                        <UserAppointments />
-                      </ProtectedRoute>
-                    } />
-                    
-                    {/* Protected Admin Routes */}
-                    <Route path="/admin" element={
-                      <ProtectedRoute requireAdmin={true}>
-                        <AdminLayout />
-                      </ProtectedRoute>
-                    }>
-                      <Route index element={<AdminDashboard />} />
-                      <Route path="appointments" element={<AdminAppointments />} />
-                      <Route path="booking-records" element={<BookingRecords />} />
-                      <Route path="pets" element={<AdminPets />} />
-                      <Route path="users" element={<AdminUsers />} />
-                      <Route path="signups" element={<SignupsPage />} />
-                    </Route>
-                    
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-              </main>
-              <Footer />
-              <FloatingChatbot />
-              <NotificationPreview />
-            </div>
-          </BrowserRouter>
-        </TooltipProvider>
+        <NotificationProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AuthRedirect />
+              <div className="min-h-screen flex flex-col">
+                <Navbar />
+                <main className="flex-grow">
+                  <Suspense fallback={
+                    <div className="flex items-center justify-center h-screen">
+                      <div className="animate-pulse">Loading...</div>
+                    </div>
+                  }>
+                    <Routes>
+                      {/* Public Routes */}
+                      <Route path="/" element={<Index />} />
+                      <Route path="/services" element={<Services />} />
+                      <Route path="/faq" element={<FAQ />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/signup" element={<Signup />} />
+                      
+                      {/* Protected Customer Routes */}
+                      <Route path="/appointment" element={
+                        <ProtectedRoute>
+                          <Appointment />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/profile" element={
+                        <ProtectedRoute>
+                          <Profile />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/my-pets" element={
+                        <ProtectedRoute>
+                          <UserPets />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/my-appointments" element={
+                        <ProtectedRoute>
+                          <UserAppointments />
+                        </ProtectedRoute>
+                      } />
+                      
+                      {/* Protected Admin Routes */}
+                      <Route path="/admin" element={
+                        <ProtectedRoute requireAdmin={true}>
+                          <AdminLayout />
+                        </ProtectedRoute>
+                      }>
+                        <Route index element={<AdminDashboard />} />
+                        <Route path="appointments" element={<AdminAppointments />} />
+                        <Route path="booking-records" element={<BookingRecords />} />
+                        <Route path="pets" element={<AdminPets />} />
+                        <Route path="users" element={<AdminUsers />} />
+                        <Route path="signups" element={<SignupsPage />} />
+                      </Route>
+                      
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
+                </main>
+                <Footer />
+                <FloatingChatbot />
+                <NotificationWrapper />
+              </div>
+            </BrowserRouter>
+          </TooltipProvider>
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
