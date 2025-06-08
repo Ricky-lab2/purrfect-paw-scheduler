@@ -8,6 +8,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FloatingChatbot } from "@/components/FloatingChatbot";
+import { NotificationPreview } from "@/components/NotificationPreview";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -128,6 +129,7 @@ const App = () => (
               </main>
               <Footer />
               <FloatingChatbot />
+              <NotificationPreview />
             </div>
           </BrowserRouter>
         </TooltipProvider>
