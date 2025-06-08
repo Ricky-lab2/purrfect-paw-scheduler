@@ -21,7 +21,7 @@ type Pet = {
 
 type AuthContextType = {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, remember: boolean = true) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUserProfile: (updates: Partial<User>) => void;
@@ -33,22 +33,40 @@ type AuthContextType = {
   calculatePetAge: (birthDate: string) => string;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isLoading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Load user from localStorage on initial render
+  // Load user from localStorage on initial render and check for auto-login
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const initializeAuth = () => {
+      try {
+        const storedUser = localStorage.getItem("user");
+        const rememberLogin = localStorage.getItem("rememberLogin");
+        
+        if (storedUser && rememberLogin === "true") {
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error("Error initializing auth:", error);
+        // Clear invalid data
+        localStorage.removeItem("user");
+        localStorage.removeItem("rememberLogin");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string, remember: boolean = true): Promise<boolean> => {
     // This is a mock authentication
     // In a real app, you would validate against a backend
     
@@ -105,6 +123,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isValid && userData) {
       // Store in localStorage
       localStorage.setItem("user", JSON.stringify(userData));
+      
+      // Store remember preference
+      if (remember) {
+        localStorage.setItem("rememberLogin", "true");
+      } else {
+        localStorage.removeItem("rememberLogin");
+      }
+      
       setUser(userData);
       return true;
     }
@@ -152,6 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("rememberLogin");
     setUser(null);
   };
 
@@ -288,7 +315,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getPetById,
         calculatePetAge,
         isAuthenticated, 
-        isAdmin 
+        isAdmin,
+        isLoading
       }}
     >
       {children}

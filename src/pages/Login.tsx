@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   
   const { login } = useAuth();
@@ -22,7 +24,7 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      const success = await login(email, password);
+      const success = await login(email, password, rememberMe);
       
       if (success) {
         toast({
@@ -81,6 +83,17 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="remember"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+              />
+              <Label htmlFor="remember" className="text-sm">
+                Remember me
+              </Label>
             </div>
             
             <div className="pt-4">

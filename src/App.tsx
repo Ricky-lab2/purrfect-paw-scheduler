@@ -39,12 +39,12 @@ const SignupsPage = lazy(() => import("./pages/admin/Signups"));
 
 // Redirect component based on auth status
 const AuthRedirect = () => {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isLoading && isAuthenticated) {
       // If user is authenticated and on login/signup page, redirect appropriately
       if (['/login', '/signup'].includes(location.pathname)) {
         if (isAdmin) {
@@ -54,7 +54,7 @@ const AuthRedirect = () => {
         }
       }
     }
-  }, [isAuthenticated, isAdmin, navigate, location.pathname]);
+  }, [isAuthenticated, isAdmin, navigate, location.pathname, isLoading]);
 
   return null;
 };
