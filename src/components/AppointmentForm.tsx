@@ -43,6 +43,7 @@ export function AppointmentForm() {
   const { user, getUserPets } = useAuth();
   const { showNotification } = useNotification();
   const [userPets, setUserPets] = useState<any[]>([]);
+  const [petsLoading, setPetsLoading] = useState(false);
   const [showReptileType, setShowReptileType] = useState(false);
   const [showReptileTypeOther, setShowReptileTypeOther] = useState(false);
   const [showOtherSpecies, setShowOtherSpecies] = useState(false);
@@ -79,11 +80,16 @@ export function AppointmentForm() {
   // Load user's pets on component mount
   React.useEffect(() => {
     if (user) {
+      setPetsLoading(true);
       try {
         const pets = getUserPets();
-        setUserPets(pets);
+        console.log("Loaded pets:", pets); // Debug log
+        setUserPets(pets || []);
       } catch (error) {
         console.error("Error loading user pets:", error);
+        setUserPets([]);
+      } finally {
+        setPetsLoading(false);
       }
     }
   }, [user, getUserPets]);
@@ -130,7 +136,14 @@ export function AppointmentForm() {
 
   // Handle pet selection for autofill
   const handlePetSelect = (petId: string) => {
+    if (petId === "none") {
+      // Clear selection
+      return;
+    }
+    
     const selectedPet = userPets.find(pet => pet.id === petId);
+    console.log("Selected pet:", selectedPet); // Debug log
+    
     if (selectedPet) {
       form.setValue("petName", selectedPet.name);
       form.setValue("petSpecies", selectedPet.species);
@@ -140,6 +153,11 @@ export function AppointmentForm() {
       if (selectedPet.weight) {
         form.setValue("weight", selectedPet.weight);
       }
+      
+      toast({
+        title: "Pet information filled",
+        description: `Information for ${selectedPet.name} has been added to the form.`,
+      });
     }
   };
 
@@ -316,29 +334,43 @@ export function AppointmentForm() {
                   Pet Information
                 </h3>
                 
-                {/* Pet Selection for Autofill */}
-                {userPets.length > 0 && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <FormLabel className="text-sm font-medium mb-2 block">
-                      Select from your pets (optional)
-                    </FormLabel>
-                    <Select onValueChange={handlePetSelect}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a pet to autofill information" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {userPets.map((pet) => (
-                          <SelectItem key={pet.id} value={pet.id}>
-                            {pet.name} ({pet.species})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription className="mt-1">
-                      Select one of your registered pets to automatically fill the form
-                    </FormDescription>
-                  </div>
-                )}
+                {/* Pet Selection for Autofill - Always show this section */}
+                <div className="p-4 bg-muted rounded-lg border-2 border-dashed border-muted-foreground/20">
+                  <FormLabel className="text-sm font-medium mb-2 block">
+                    Quick Fill from Your Pets
+                  </FormLabel>
+                  
+                  {petsLoading ? (
+                    <div className="text-sm text-muted-foreground">Loading your pets...</div>
+                  ) : userPets.length > 0 ? (
+                    <>
+                      <Select onValueChange={handlePetSelect}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose one of your registered pets to autofill" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Manual entry (clear selection)</SelectItem>
+                          {userPets.map((pet) => (
+                            <SelectItem key={pet.id} value={pet.id}>
+                              {pet.name} ({pet.species})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="mt-1">
+                        You have {userPets.length} registered pet{userPets.length !== 1 ? 's' : ''}. Select one to automatically fill the form below.
+                      </FormDescription>
+                    </>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      You don't have any registered pets yet. You can{" "}
+                      <a href="/user-pets" className="text-pet-blue-dark hover:underline">
+                        register your pets here
+                      </a>{" "}
+                      for easier booking next time.
+                    </div>
+                  )}
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
