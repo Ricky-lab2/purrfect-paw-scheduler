@@ -12,8 +12,10 @@ import { PetFormData, DEFAULT_PET_FORM } from "./AddPetDialog";
 export type Pet = {
   id: string;
   name: string;
-  type: "dog" | "cat" | "bird" | "other";
+  type: "dog" | "cat" | "bird" | "rabbit" | "hamster" | "fish" | "reptile" | "other";
+  species: string;
   breed?: string;
+  weight?: string;
   birthDate: string;
   gender: "male" | "female";
   ownerId: string;
@@ -36,7 +38,9 @@ const EditPetDialog = ({ isOpen, setIsOpen, currentPet, onPetUpdated }: EditPetD
       setFormData({
         name: currentPet.name,
         type: currentPet.type,
+        species: currentPet.species,
         breed: currentPet.breed || "",
+        weight: currentPet.weight || "",
         birthDate: currentPet.birthDate,
         gender: currentPet.gender
       });
@@ -44,7 +48,14 @@ const EditPetDialog = ({ isOpen, setIsOpen, currentPet, onPetUpdated }: EditPetD
   }, [currentPet]);
   
   const handleFormChange = (field: keyof PetFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      // Auto-update species when type changes for simple types
+      if (field === "type" && ["dog", "cat", "bird", "fish", "hamster", "rabbit"].includes(value)) {
+        updated.species = value;
+      }
+      return updated;
+    });
   };
   
   const handleEditPet = () => {
@@ -114,6 +125,10 @@ const EditPetDialog = ({ isOpen, setIsOpen, currentPet, onPetUpdated }: EditPetD
                   <SelectItem value="dog">Dog</SelectItem>
                   <SelectItem value="cat">Cat</SelectItem>
                   <SelectItem value="bird">Bird</SelectItem>
+                  <SelectItem value="rabbit">Rabbit</SelectItem>
+                  <SelectItem value="hamster">Hamster</SelectItem>
+                  <SelectItem value="fish">Fish</SelectItem>
+                  <SelectItem value="reptile">Reptile</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -143,6 +158,16 @@ const EditPetDialog = ({ isOpen, setIsOpen, currentPet, onPetUpdated }: EditPetD
               value={formData.breed}
               onChange={(e) => handleFormChange("breed", e.target.value)}
               placeholder="Enter breed"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-weight">Weight (Optional)</Label>
+            <Input
+              id="edit-weight"
+              value={formData.weight}
+              onChange={(e) => handleFormChange("weight", e.target.value)}
+              placeholder="Enter weight (e.g., 5 kg, 10 lbs)"
             />
           </div>
           

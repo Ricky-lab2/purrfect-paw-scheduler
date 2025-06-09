@@ -11,8 +11,10 @@ import { Plus } from "lucide-react";
 
 export type PetFormData = {
   name: string;
-  type: "dog" | "cat" | "bird" | "other";
+  type: "dog" | "cat" | "bird" | "rabbit" | "hamster" | "fish" | "reptile" | "other";
+  species: string;
   breed?: string;
+  weight?: string;
   birthDate: string;
   gender: "male" | "female";
 };
@@ -20,7 +22,9 @@ export type PetFormData = {
 export const DEFAULT_PET_FORM: PetFormData = {
   name: "",
   type: "dog",
+  species: "dog",
   breed: "",
+  weight: "",
   birthDate: "",
   gender: "male"
 };
@@ -37,7 +41,14 @@ const AddPetDialog = ({ isOpen, setIsOpen, onPetAdded }: AddPetDialogProps) => {
   const [formData, setFormData] = useState<PetFormData>(DEFAULT_PET_FORM);
   
   const handleFormChange = (field: keyof PetFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      // Auto-update species when type changes for simple types
+      if (field === "type" && ["dog", "cat", "bird", "fish", "hamster", "rabbit"].includes(value)) {
+        updated.species = value;
+      }
+      return updated;
+    });
   };
   
   const handleAddPet = () => {
@@ -105,6 +116,10 @@ const AddPetDialog = ({ isOpen, setIsOpen, onPetAdded }: AddPetDialogProps) => {
                   <SelectItem value="dog">Dog</SelectItem>
                   <SelectItem value="cat">Cat</SelectItem>
                   <SelectItem value="bird">Bird</SelectItem>
+                  <SelectItem value="rabbit">Rabbit</SelectItem>
+                  <SelectItem value="hamster">Hamster</SelectItem>
+                  <SelectItem value="fish">Fish</SelectItem>
+                  <SelectItem value="reptile">Reptile</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -134,6 +149,16 @@ const AddPetDialog = ({ isOpen, setIsOpen, onPetAdded }: AddPetDialogProps) => {
               value={formData.breed}
               onChange={(e) => handleFormChange("breed", e.target.value)}
               placeholder="Enter breed"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="weight">Weight (Optional)</Label>
+            <Input
+              id="weight"
+              value={formData.weight}
+              onChange={(e) => handleFormChange("weight", e.target.value)}
+              placeholder="Enter weight (e.g., 5 kg, 10 lbs)"
             />
           </div>
           
