@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -8,12 +7,21 @@ import { NotificationPreview } from "./NotificationPreview";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'appointment' | 'service' | 'vaccination' | 'general';
+  timestamp: Date;
+  read: boolean;
+}
+
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const location = useLocation();
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout, getUserAppointments, getUserPets } = useAuth();
   
   // Check if we're on an admin route
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -26,10 +34,116 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Generate real-time notifications based on user data
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setNotifications([]);
+      return;
+    }
+
+    const generateNotifications = () => {
+      const newNotifications: Notification[] = [];
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const nextWeek = new Date(now);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+
+      try {
+        // Get user appointments and pets
+        const appointments = getUserAppointments();
+        const pets = getUserPets();
+
+        console.log("Generating notifications for user:", user.name);
+        console.log("User appointments:", appointments);
+        console.log("User pets:", pets);
+
+        // Check for upcoming appointments (within next 24 hours)
+        appointments.forEach(appointment => {
+          const appointmentDate = new Date(appointment.date);
+          const timeDiff = appointmentDate.getTime() - now.getTime();
+          const hoursDiff = timeDiff / (1000 * 3600);
+
+          if (hoursDiff > 0 && hoursDiff <= 24) {
+            newNotifications.push({
+              id: `appointment-${appointment.id}`,
+              title: "Appointment Reminder",
+              message: `Your pet ${appointment.petName}'s ${appointment.service} is ${hoursDiff <= 1 ? 'in less than an hour' : `tomorrow at ${appointment.timeSlot}`}`,
+              type: 'appointment',
+              timestamp: new Date(),
+              read: false
+            });
+          }
+        });
+
+        // Check for pet vaccination reminders (pets older than 6 months without recent vaccinations)
+        pets.forEach(pet => {
+          const birthDate = new Date(pet.birthDate);
+          const ageInMonths = (now.getTime() - birthDate.getTime()) / (1000 * 3600 * 24 * 30);
+          
+          if (ageInMonths >= 6) {
+            // Check if pet has recent vaccination appointment
+            const hasRecentVaccination = appointments.some(apt => 
+              apt.petName === pet.name && 
+              apt.service.toLowerCase().includes('vaccination') &&
+              new Date(apt.date) > new Date(now.getTime() - (365 * 24 * 3600 * 1000)) // within last year
+            );
+
+            if (!hasRecentVaccination) {
+              newNotifications.push({
+                id: `vaccination-${pet.id}`,
+                title: "Vaccination Due",
+                message: `${pet.name}'s vaccination may be due. Consider scheduling a checkup.`,
+                type: 'vaccination',
+                timestamp: new Date(),
+                read: false
+              });
+            }
+          }
+        });
+
+        // Add promotional notifications only if user has pets
+        if (pets.length > 0) {
+          newNotifications.push({
+            id: 'promo-grooming',
+            title: "New Service Available",
+            message: "Try our new grooming package with 10% off this month!",
+            type: 'service',
+            timestamp: new Date(),
+            read: false
+          });
+        }
+
+      } catch (error) {
+        console.error("Error generating notifications:", error);
+      }
+
+      console.log("Generated notifications:", newNotifications);
+      setNotifications(newNotifications);
+    };
+
+    generateNotifications();
+    
+    // Update notifications every minute for real-time updates
+    const interval = setInterval(generateNotifications, 60000);
+    
+    return () => clearInterval(interval);
+  }, [isAuthenticated, user, getUserAppointments, getUserPets]);
+
   // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
+
+  const markNotificationAsRead = (notificationId: string) => {
+    setNotifications(prev => 
+      prev.map(notif => 
+        notif.id === notificationId ? { ...notif, read: true } : notif
+      )
+    );
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const navLinks = [
     { name: "Home", href: "/" },
@@ -96,26 +210,46 @@ export function Navbar() {
                 <PopoverTrigger asChild>
                   <button className="p-2 rounded-full hover:bg-pet-gray dark:hover:bg-gray-800 transition-colors relative dark:text-white">
                     <Bell size={20} />
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    )}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-80 p-0 dark:bg-gray-900 dark:border-gray-800">
                   <div className="bg-pet-blue-dark text-white p-3">
-                    <h3 className="font-medium">Notifications</h3>
+                    <h3 className="font-medium">
+                      Notifications {unreadCount > 0 && `(${unreadCount})`}
+                    </h3>
                   </div>
                   <div className="p-3 max-h-[300px] overflow-y-auto">
-                    <div className="border-b border-gray-100 dark:border-gray-800 pb-2 mb-2">
-                      <p className="text-sm font-medium dark:text-white">Appointment Reminder</p>
-                      <p className="text-xs text-muted-foreground">Your pet checkup is tomorrow at 10:00 AM</p>
-                    </div>
-                    <div className="border-b border-gray-100 dark:border-gray-800 pb-2 mb-2">
-                      <p className="text-sm font-medium dark:text-white">New Service Available</p>
-                      <p className="text-xs text-muted-foreground">Try our new grooming package with 10% off</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium dark:text-white">Vaccination Due</p>
-                      <p className="text-xs text-muted-foreground">Max's rabies vaccination is due in 7 days</p>
-                    </div>
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-muted-foreground">No notifications</p>
+                        <p className="text-xs text-muted-foreground mt-1">You're all caught up!</p>
+                      </div>
+                    ) : (
+                      notifications.map((notification, index) => (
+                        <div 
+                          key={notification.id}
+                          className={cn(
+                            "border-b border-gray-100 dark:border-gray-800 pb-2 mb-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded",
+                            !notification.read && "bg-blue-50 dark:bg-blue-900/20",
+                            index === notifications.length - 1 && "border-b-0 mb-0"
+                          )}
+                          onClick={() => markNotificationAsRead(notification.id)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium dark:text-white">{notification.title}</p>
+                              <p className="text-xs text-muted-foreground">{notification.message}</p>
+                            </div>
+                            {!notification.read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 mt-1"></div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -251,6 +385,11 @@ export function Navbar() {
                   <button className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-pet-gray dark:hover:bg-gray-800 dark:text-white">
                     <Bell size={18} />
                     <span className="text-sm">Notifications</span>
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                        {unreadCount}
+                      </span>
+                    )}
                   </button>
                   <button className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-pet-gray dark:hover:bg-gray-800 dark:text-white">
                     <Settings size={18} />
