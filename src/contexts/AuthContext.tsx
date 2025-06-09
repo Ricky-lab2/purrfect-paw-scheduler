@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from "react";
 
 type User = {
@@ -22,6 +21,16 @@ type Pet = {
   ownerId: string;
 };
 
+type Appointment = {
+  id: string;
+  petName: string;
+  service: string;
+  date: string;
+  timeSlot: string;
+  ownerName: string;
+  ownerId: string;
+};
+
 type AuthContextType = {
   user: User | null;
   login: (email: string, password: string, remember?: boolean) => Promise<boolean>;
@@ -34,6 +43,7 @@ type AuthContextType = {
   deletePet: (id: string) => boolean;
   getPetById: (id: string) => Pet | null;
   calculatePetAge: (birthDate: string) => string;
+  getUserAppointments: () => Appointment[];
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
@@ -300,6 +310,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Appointment management functions
+  const getUserAppointments = (): Appointment[] => {
+    if (!user) return [];
+    
+    const allAppointments = JSON.parse(localStorage.getItem("appointments") || "[]");
+    return allAppointments.filter((appointment: Appointment) => appointment.ownerId === user.id);
+  };
+
   const isAuthenticated = user !== null;
   const isAdmin = user?.role === "admin";
 
@@ -317,6 +335,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deletePet,
         getPetById,
         calculatePetAge,
+        getUserAppointments,
         isAuthenticated, 
         isAdmin,
         isLoading
