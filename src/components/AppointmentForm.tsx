@@ -12,6 +12,7 @@ import { CalendarDays, Clock, PawPrint, Stethoscope } from "lucide-react";
 import { saveAppointment } from "@/utils/localStorageDB";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotification } from "@/contexts/NotificationContext";
 import { AppointmentSuccessDialog } from "@/components/AppointmentSuccessDialog";
 import { AppointmentConfirmDialog } from "@/components/AppointmentConfirmDialog";
 
@@ -39,7 +40,9 @@ type FormData = z.infer<typeof formSchema>;
 
 export function AppointmentForm() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, getUserPets } = useAuth();
+  const { showNotification } = useNotification();
+  const [userPets, setUserPets] = useState<any[]>([]);
   const [showReptileType, setShowReptileType] = useState(false);
   const [showReptileTypeOther, setShowReptileTypeOther] = useState(false);
   const [showOtherSpecies, setShowOtherSpecies] = useState(false);
@@ -72,6 +75,18 @@ export function AppointmentForm() {
       additionalInfo: "",
     },
   });
+
+  // Load user's pets on component mount
+  React.useEffect(() => {
+    if (user) {
+      try {
+        const pets = getUserPets();
+        setUserPets(pets);
+      } catch (error) {
+        console.error("Error loading user pets:", error);
+      }
+    }
+  }, [user, getUserPets]);
 
   const watchedSpecies = form.watch("petSpecies");
   const watchedReptileType = form.watch("reptileType");
@@ -112,6 +127,21 @@ export function AppointmentForm() {
       form.setValue("breedOther", "");
     }
   }, [watchedBreed, form]);
+
+  // Handle pet selection for autofill
+  const handlePetSelect = (petId: string) => {
+    const selectedPet = userPets.find(pet => pet.id === petId);
+    if (selectedPet) {
+      form.setValue("petName", selectedPet.name);
+      form.setValue("petSpecies", selectedPet.species);
+      if (selectedPet.breed) {
+        form.setValue("breed", selectedPet.breed);
+      }
+      if (selectedPet.weight) {
+        form.setValue("weight", selectedPet.weight);
+      }
+    }
+  };
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -168,7 +198,7 @@ export function AppointmentForm() {
     if (!pendingAppointmentData) return;
 
     try {
-      await saveAppointment(pendingAppointmentData);
+      const savedAppointment = await saveAppointment(pendingAppointmentData);
       
       // Set appointment details for the success dialog
       setAppointmentDetails({
@@ -181,6 +211,15 @@ export function AppointmentForm() {
         date: pendingAppointmentData.date,
         timeSlot: pendingAppointmentData.timeSlot,
         diagnosis: pendingAppointmentData.diagnosis,
+      });
+      
+      // Show notification with appointment details
+      showNotification({
+        petName: pendingAppointmentData.petName,
+        service: pendingAppointmentData.service,
+        date: pendingAppointmentData.date,
+        timeSlot: pendingAppointmentData.timeSlot,
+        ownerName: pendingAppointmentData.ownerName,
       });
       
       // Close confirmation dialog and show success dialog
@@ -276,6 +315,30 @@ export function AppointmentForm() {
                   <PawPrint size={18} />
                   Pet Information
                 </h3>
+                
+                {/* Pet Selection for Autofill */}
+                {userPets.length > 0 && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <FormLabel className="text-sm font-medium mb-2 block">
+                      Select from your pets (optional)
+                    </FormLabel>
+                    <Select onValueChange={handlePetSelect}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a pet to autofill information" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {userPets.map((pet) => (
+                          <SelectItem key={pet.id} value={pet.id}>
+                            {pet.name} ({pet.species})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription className="mt-1">
+                      Select one of your registered pets to automatically fill the form
+                    </FormDescription>
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
