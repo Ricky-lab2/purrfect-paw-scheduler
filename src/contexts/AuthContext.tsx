@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from "react";
 
 type User = {
@@ -12,8 +13,10 @@ type User = {
 type Pet = {
   id: string;
   name: string;
-  type: "dog" | "cat" | "bird" | "other";
+  type: "dog" | "cat" | "bird" | "rabbit" | "hamster" | "fish" | "reptile" | "other";
+  species: string; // This will store the full species info like "dog", "reptile:snake", "other:ferret"
   breed?: string;
+  weight?: string;
   birthDate: string;
   gender: "male" | "female";
   ownerId: string;

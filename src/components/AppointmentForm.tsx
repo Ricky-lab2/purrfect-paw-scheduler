@@ -145,11 +145,33 @@ export function AppointmentForm() {
     console.log("Selected pet:", selectedPet); // Debug log
     
     if (selectedPet) {
+      // Fill basic pet info
       form.setValue("petName", selectedPet.name);
-      form.setValue("petSpecies", selectedPet.species);
+      
+      // Handle species properly - check if it's a complex species format
+      if (selectedPet.species) {
+        if (selectedPet.species.startsWith("reptile:")) {
+          form.setValue("petSpecies", "reptile");
+          const reptileType = selectedPet.species.substring(8);
+          form.setValue("reptileType", reptileType);
+        } else if (selectedPet.species.startsWith("other:")) {
+          form.setValue("petSpecies", "other");
+          form.setValue("otherSpecies", selectedPet.species.substring(6));
+        } else {
+          // Simple species like "dog", "cat", etc.
+          form.setValue("petSpecies", selectedPet.species);
+        }
+      } else {
+        // Fallback to the type field if species is not available
+        form.setValue("petSpecies", selectedPet.type);
+      }
+      
+      // Fill breed if available
       if (selectedPet.breed) {
         form.setValue("breed", selectedPet.breed);
       }
+      
+      // Fill weight if available
       if (selectedPet.weight) {
         form.setValue("weight", selectedPet.weight);
       }
@@ -352,13 +374,15 @@ export function AppointmentForm() {
                           <SelectItem value="none">Manual entry (clear selection)</SelectItem>
                           {userPets.map((pet) => (
                             <SelectItem key={pet.id} value={pet.id}>
-                              {pet.name} ({pet.species})
+                              {pet.name} ({pet.species || pet.type}
+                              {pet.breed && `, ${pet.breed}`}
+                              {pet.weight && `, ${pet.weight}`})
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <FormDescription className="mt-1">
-                        You have {userPets.length} registered pet{userPets.length !== 1 ? 's' : ''}. Select one to automatically fill the form below.
+                        You have {userPets.length} registered pet{userPets.length !== 1 ? 's' : ''}. Select one to automatically fill the form below with their details.
                       </FormDescription>
                     </>
                   ) : (
