@@ -9,7 +9,126 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      appointments: {
+        Row: {
+          appointment_date: string
+          created_at: string
+          id: string
+          owner_id: string
+          owner_name: string
+          pet_name: string
+          service: string
+          status: string
+          time_slot: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_date: string
+          created_at?: string
+          id?: string
+          owner_id: string
+          owner_name: string
+          pet_name: string
+          service: string
+          status?: string
+          time_slot: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_date?: string
+          created_at?: string
+          id?: string
+          owner_id?: string
+          owner_name?: string
+          pet_name?: string
+          service?: string
+          status?: string
+          time_slot?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pets: {
+        Row: {
+          birth_date: string
+          breed: string | null
+          created_at: string
+          gender: string
+          id: string
+          name: string
+          owner_id: string
+          species: string
+          type: string
+          updated_at: string
+          weight: string | null
+        }
+        Insert: {
+          birth_date: string
+          breed?: string | null
+          created_at?: string
+          gender: string
+          id?: string
+          name: string
+          owner_id: string
+          species: string
+          type: string
+          updated_at?: string
+          weight?: string | null
+        }
+        Update: {
+          birth_date?: string
+          breed?: string | null
+          created_at?: string
+          gender?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          species?: string
+          type?: string
+          updated_at?: string
+          weight?: string | null
+        }
+        Relationships: []
+      }
+      Profile: {
+        Row: {}
+        Insert: {}
+        Update: {}
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          phone?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

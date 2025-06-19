@@ -4,42 +4,58 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Clock, MapPin, AlertCircle } from "lucide-react";
-import { getAppointments, Appointment } from "@/utils/localStorageDB";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
+type Appointment = {
+  id: string;
+  petName: string;
+  service: string;
+  date: string;
+  timeSlot: string;
+  ownerName: string;
+  ownerId: string;
+  status?: string;
+  additionalInfo?: string;
+};
+
 const UserAppointments = () => {
-  const { user } = useAuth();
+  const { user, getUserAppointments } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
   
   useEffect(() => {
     if (user) {
-      try {
-        // Get all appointments for the current user
-        const userAppointments = getAppointments().filter(
-          apt => apt.email.toLowerCase() === user.email.toLowerCase()
-        );
-        
-        // Sort appointments by date (newest first)
-        userAppointments.sort((a, b) => {
-          const dateA = new Date(a.date).getTime();
-          const dateB = new Date(b.date).getTime();
-          return dateB - dateA;
-        });
-        
-        setAppointments(userAppointments);
-      } catch (error) {
-        console.error("Error loading appointments:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load your appointments. Please try again.",
-          variant: "destructive",
-        });
-      }
+      loadAppointments();
     }
-  }, [user, toast]);
+  }, [user]);
+  
+  const loadAppointments = async () => {
+    try {
+      setIsLoading(true);
+      const userAppointments = await getUserAppointments();
+      
+      // Sort appointments by date (newest first)
+      userAppointments.sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return dateB - dateA;
+      });
+      
+      setAppointments(userAppointments);
+    } catch (error) {
+      console.error("Error loading appointments:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load your appointments. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -55,10 +71,15 @@ const UserAppointments = () => {
     navigate("/appointment");
   };
   
-  // Format currency to PHP
-  const formatCurrency = (amount: number) => {
-    return `₱${amount.toLocaleString()}`;
-  };
+  if (isLoading) {
+    return (
+      <div className="container max-w-4xl py-12">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-pulse">Loading your appointments...</div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="container max-w-4xl py-12">
@@ -98,8 +119,8 @@ const UserAppointments = () => {
                   <CardHeader className="pb-2">
                     <div className="flex justify-between">
                       <CardTitle>{apt.petName} - {apt.service}</CardTitle>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(apt.status)}`}>
-                        {apt.status}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(apt.status || "Pending")}`}>
+                        {apt.status || "Pending"}
                       </span>
                     </div>
                     <CardDescription>
@@ -127,7 +148,7 @@ const UserAppointments = () => {
                         <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
                           <p className="text-sm font-medium">Time</p>
-                          <p className="text-sm text-muted-foreground">{apt.time || apt.timeSlot || "Not specified"}</p>
+                          <p className="text-sm text-muted-foreground">{apt.timeSlot}</p>
                         </div>
                       </div>
                       

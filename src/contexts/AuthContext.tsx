@@ -1,4 +1,7 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User as SupabaseUser, Session } from "@supabase/supabase-js";
 
 type User = {
   id: string;
@@ -13,7 +16,7 @@ type Pet = {
   id: string;
   name: string;
   type: "dog" | "cat" | "bird" | "rabbit" | "hamster" | "fish" | "reptile" | "other";
-  species: string; // This will store the full species info like "dog", "reptile:snake", "other:ferret"
+  species: string;
   breed?: string;
   weight?: string;
   birthDate: string;
@@ -33,17 +36,17 @@ type Appointment = {
 
 type AuthContextType = {
   user: User | null;
-  login: (email: string, password: string, remember?: boolean) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  updateUserProfile: (updates: Partial<User>) => void;
-  getUserPets: () => Pet[];
-  addPet: (pet: Omit<Pet, 'id' | 'ownerId'>) => Pet;
-  updatePet: (id: string, updates: Partial<Omit<Pet, 'id' | 'ownerId'>>) => boolean;
-  deletePet: (id: string) => boolean;
-  getPetById: (id: string) => Pet | null;
+  updateUserProfile: (updates: Partial<User>) => Promise<void>;
+  getUserPets: () => Promise<Pet[]>;
+  addPet: (pet: Omit<Pet, 'id' | 'ownerId'>) => Promise<Pet>;
+  updatePet: (id: string, updates: Partial<Omit<Pet, 'id' | 'ownerId'>>) => Promise<boolean>;
+  deletePet: (id: string) => Promise<boolean>;
+  getPetById: (id: string) => Promise<Pet | null>;
   calculatePetAge: (birthDate: string) => string;
-  getUserAppointments: () => Appointment[];
+  getUserAppointments: () => Promise<Appointment[]>;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
@@ -53,236 +56,246 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Load user from localStorage on initial render and check for auto-login
+
+  // Initialize auth state
   useEffect(() => {
-    const initializeAuth = () => {
-      try {
-        const storedUser = localStorage.getItem("user");
-        const rememberLogin = localStorage.getItem("rememberLogin");
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
+        setSession(session);
         
-        if (storedUser && rememberLogin === "true") {
-          const userData = JSON.parse(storedUser);
-          setUser(userData);
+        if (session?.user) {
+          // Fetch user profile from profiles table
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (profile && !error) {
+            setUser({
+              id: profile.id,
+              name: profile.name,
+              email: profile.email,
+              role: profile.role as "admin" | "customer",
+              phone: profile.phone,
+              address: profile.address,
+            });
+          }
+        } else {
+          setUser(null);
         }
-      } catch (error) {
-        console.error("Error initializing auth:", error);
-        // Clear invalid data
-        localStorage.removeItem("user");
-        localStorage.removeItem("rememberLogin");
-      } finally {
         setIsLoading(false);
       }
-    };
+    );
 
-    initializeAuth();
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string, remember: boolean = true): Promise<boolean> => {
-    // This is a mock authentication
-    // In a real app, you would validate against a backend
-    
-    // Simple validation
-    if (!email || !password) {
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Login error:', error.message);
+        return false;
+      }
+
+      return !!data.user;
+    } catch (error) {
+      console.error('Login error:', error);
       return false;
     }
-    
-    // Mock users - in a real app, this would come from a backend
-    const mockAdminCredentials = { email: "admin@example.com", password: "admin123" };
-    const mockCustomerCredentials = { email: "customer@example.com", password: "customer123" };
-    
-    let isValid = false;
-    let userData: User | null = null;
-    
-    if (email === mockAdminCredentials.email && password === mockAdminCredentials.password) {
-      isValid = true;
-      userData = {
-        id: "admin-1",
-        name: "Admin User",
-        email: mockAdminCredentials.email,
-        role: "admin"
-      };
-    } else if (email === mockCustomerCredentials.email && password === mockCustomerCredentials.password) {
-      isValid = true;
-      userData = {
-        id: "customer-1",
-        name: "John Doe",
-        email: mockCustomerCredentials.email,
-        role: "customer",
-        phone: "555-123-4567",
-        address: "123 Main St, Anytown, USA"
-      };
-    }
-    
-    // Also check registered users in localStorage
-    if (!isValid) {
-      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
-      const foundUser = registeredUsers.find(
-        (u: any) => u.email === email && u.password === password
-      );
-      
-      if (foundUser) {
-        isValid = true;
-        userData = {
-          id: foundUser.id,
-          name: foundUser.name,
-          email: foundUser.email,
-          role: "customer" // All registered users are customers
-        };
-      }
-    }
-    
-    if (isValid && userData) {
-      // Store in localStorage
-      localStorage.setItem("user", JSON.stringify(userData));
-      
-      // Store remember preference
-      if (remember) {
-        localStorage.setItem("rememberLogin", "true");
-      } else {
-        localStorage.removeItem("rememberLogin");
-      }
-      
-      setUser(userData);
-      return true;
-    }
-    
-    return false;
   };
 
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
-    // Simple validation
-    if (!name || !email || !password) {
-      return false;
-    }
-    
-    // Check if email already exists in the predefined accounts
-    if (
-      email === "admin@example.com" || 
-      email === "customer@example.com"
-    ) {
-      return false;
-    }
-    
-    // Get existing registered users
-    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
-    
-    // Check if email already exists in registered users
-    if (registeredUsers.some((user: any) => user.email === email)) {
-      return false;
-    }
-    
-    // Create new user
-    const newUser = {
-      id: `customer-${Date.now()}`,
-      name,
-      email,
-      password, // In a real app, this should be hashed
-      role: "customer"
-    };
-    
-    // Add to registered users
-    registeredUsers.push(newUser);
-    localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers));
-    
-    return true;
-  };
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+          },
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
 
-  const logout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("rememberLogin");
-    setUser(null);
-  };
-
-  // Update user profile
-  const updateUserProfile = (updates: Partial<User>) => {
-    if (!user) return;
-    
-    const updatedUser = { ...user, ...updates };
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-
-    // If this is a registered user (not a mock user), update in registeredUsers as well
-    if (user.id.startsWith('customer-') && user.id !== 'customer-1') {
-      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
-      const userIndex = registeredUsers.findIndex((u: any) => u.id === user.id);
-      
-      if (userIndex !== -1) {
-        registeredUsers[userIndex] = { 
-          ...registeredUsers[userIndex], 
-          ...updates,
-          // Don't override the password if it's not provided in the updates
-          password: registeredUsers[userIndex].password 
-        };
-        localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers));
+      if (error) {
+        console.error('Signup error:', error.message);
+        return false;
       }
+
+      return !!data.user;
+    } catch (error) {
+      console.error('Signup error:', error);
+      return false;
     }
-    
-    setUser(updatedUser);
   };
 
-  // Memoize pet management functions
-  const getUserPets = useCallback((): Pet[] => {
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+  };
+
+  const updateUserProfile = async (updates: Partial<User>) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id);
+
+      if (!error) {
+        setUser({ ...user, ...updates });
+      }
+    } catch (error) {
+      console.error('Profile update error:', error);
+    }
+  };
+
+  // Pet management functions
+  const getUserPets = useCallback(async (): Promise<Pet[]> => {
     if (!user) return [];
-    
-    const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
-    return allPets.filter((pet: Pet) => pet.ownerId === user.id);
+
+    try {
+      const { data, error } = await supabase
+        .from('pets')
+        .select('*')
+        .eq('owner_id', user.id);
+
+      if (error) {
+        console.error('Error fetching pets:', error);
+        return [];
+      }
+
+      return (data || []).map(pet => ({
+        id: pet.id,
+        name: pet.name,
+        type: pet.type as Pet['type'],
+        species: pet.species,
+        breed: pet.breed,
+        weight: pet.weight,
+        birthDate: pet.birth_date,
+        gender: pet.gender as Pet['gender'],
+        ownerId: pet.owner_id
+      }));
+    } catch (error) {
+      console.error('Error fetching pets:', error);
+      return [];
+    }
   }, [user?.id]);
 
-  const addPet = useCallback((pet: Omit<Pet, 'id' | 'ownerId'>): Pet => {
+  const addPet = useCallback(async (pet: Omit<Pet, 'id' | 'ownerId'>): Promise<Pet> => {
     if (!user) throw new Error("User not authenticated");
-    
-    const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
-    const newPet: Pet = {
-      ...pet,
-      id: `pet-${Date.now()}`,
-      ownerId: user.id,
+
+    const { data, error } = await supabase
+      .from('pets')
+      .insert({
+        owner_id: user.id,
+        name: pet.name,
+        type: pet.type,
+        species: pet.species,
+        breed: pet.breed,
+        weight: pet.weight,
+        birth_date: pet.birthDate,
+        gender: pet.gender,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding pet:', error);
+      throw new Error("Failed to add pet");
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      type: data.type,
+      species: data.species,
+      breed: data.breed,
+      weight: data.weight,
+      birthDate: data.birth_date,
+      gender: data.gender,
+      ownerId: data.owner_id
     };
-    
-    allPets.push(newPet);
-    localStorage.setItem("pets", JSON.stringify(allPets));
-    
-    return newPet;
   }, [user?.id]);
 
-  const updatePet = useCallback((id: string, updates: Partial<Omit<Pet, 'id' | 'ownerId'>>): boolean => {
+  const updatePet = useCallback(async (id: string, updates: Partial<Omit<Pet, 'id' | 'ownerId'>>): Promise<boolean> => {
     if (!user) return false;
-    
-    const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
-    const petIndex = allPets.findIndex((p: Pet) => p.id === id && p.ownerId === user.id);
-    
-    if (petIndex !== -1) {
-      allPets[petIndex] = { ...allPets[petIndex], ...updates };
-      localStorage.setItem("pets", JSON.stringify(allPets));
-      return true;
-    }
-    
-    return false;
+
+    const dbUpdates: any = {};
+    if (updates.name) dbUpdates.name = updates.name;
+    if (updates.type) dbUpdates.type = updates.type;
+    if (updates.species) dbUpdates.species = updates.species;
+    if (updates.breed !== undefined) dbUpdates.breed = updates.breed;
+    if (updates.weight !== undefined) dbUpdates.weight = updates.weight;
+    if (updates.birthDate) dbUpdates.birth_date = updates.birthDate;
+    if (updates.gender) dbUpdates.gender = updates.gender;
+
+    const { error } = await supabase
+      .from('pets')
+      .update(dbUpdates)
+      .eq('id', id)
+      .eq('owner_id', user.id);
+
+    return !error;
   }, [user?.id]);
 
-  const deletePet = useCallback((id: string): boolean => {
+  const deletePet = useCallback(async (id: string): Promise<boolean> => {
     if (!user) return false;
-    
-    const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
-    const filteredPets = allPets.filter((p: Pet) => !(p.id === id && p.ownerId === user.id));
-    
-    if (filteredPets.length !== allPets.length) {
-      localStorage.setItem("pets", JSON.stringify(filteredPets));
-      return true;
-    }
-    
-    return false;
+
+    const { error } = await supabase
+      .from('pets')
+      .delete()
+      .eq('id', id)
+      .eq('owner_id', user.id);
+
+    return !error;
   }, [user?.id]);
-  
-  // Get pet by ID
-  const getPetById = useCallback((id: string): Pet | null => {
+
+  const getPetById = useCallback(async (id: string): Promise<Pet | null> => {
     if (!user) return null;
-    
-    const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
-    return allPets.find((pet: Pet) => pet.id === id && pet.ownerId === user.id) || null;
+
+    const { data, error } = await supabase
+      .from('pets')
+      .select('*')
+      .eq('id', id)
+      .eq('owner_id', user.id)
+      .single();
+
+    if (error || !data) return null;
+
+    return {
+      id: data.id,
+      name: data.name,
+      type: data.type,
+      species: data.species,
+      breed: data.breed,
+      weight: data.weight,
+      birthDate: data.birth_date,
+      gender: data.gender,
+      ownerId: data.owner_id
+    };
   }, [user?.id]);
-  
-  // Calculate pet age from birthDate
+
   const calculatePetAge = useCallback((birthDate: string): string => {
     const today = new Date();
     const birth = new Date(birthDate);
@@ -290,12 +303,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let years = today.getFullYear() - birth.getFullYear();
     const months = today.getMonth() - birth.getMonth();
     
-    // Adjust years if the current month is before the birth month
     if (months < 0 || (months === 0 && today.getDate() < birth.getDate())) {
       years--;
     }
     
-    // Calculate remaining months
     let remainingMonths = months;
     if (remainingMonths < 0) {
       remainingMonths += 12;
@@ -310,15 +321,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Memoize appointment management functions
-  const getUserAppointments = useCallback((): Appointment[] => {
+  const getUserAppointments = useCallback(async (): Promise<Appointment[]> => {
     if (!user) return [];
-    
-    const allAppointments = JSON.parse(localStorage.getItem("appointments") || "[]");
-    return allAppointments.filter((appointment: Appointment) => appointment.ownerId === user.id);
+
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('owner_id', user.id);
+
+      if (error) {
+        console.error('Error fetching appointments:', error);
+        return [];
+      }
+
+      return (data || []).map(apt => ({
+        id: apt.id,
+        petName: apt.pet_name,
+        service: apt.service,
+        date: apt.appointment_date,
+        timeSlot: apt.time_slot,
+        ownerName: apt.owner_name,
+        ownerId: apt.owner_id
+      }));
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      return [];
+    }
   }, [user?.id]);
 
-  const isAuthenticated = user !== null;
+  const isAuthenticated = !!session && !!user;
   const isAdmin = user?.role === "admin";
 
   return (

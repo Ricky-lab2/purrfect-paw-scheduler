@@ -19,15 +19,17 @@ const UserPets = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentPet, setCurrentPet] = useState<Pet | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Initial pet load and refresh function
   useEffect(() => {
     refreshPets();
   }, []);
   
-  const refreshPets = () => {
+  const refreshPets = async () => {
     try {
-      const userPets = getUserPets();
+      setIsLoading(true);
+      const userPets = await getUserPets();
       setPets(userPets);
     } catch (error) {
       console.error("Error fetching pets:", error);
@@ -36,15 +38,17 @@ const UserPets = () => {
         description: "Failed to load your pets. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
   
-  const handleDeletePet = (pet: Pet) => {
+  const handleDeletePet = async (pet: Pet) => {
     if (confirm(`Are you sure you want to remove ${pet.name} from your pets?`)) {
-      const success = deletePet(pet.id);
+      const success = await deletePet(pet.id);
       
       if (success) {
-        refreshPets();
+        await refreshPets();
         
         toast({
           title: "Pet removed",
@@ -64,6 +68,16 @@ const UserPets = () => {
     setCurrentPet(pet);
     setIsEditDialogOpen(true);
   };
+  
+  if (isLoading) {
+    return (
+      <div className="container max-w-4xl py-12">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-pulse">Loading your pets...</div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="container max-w-4xl py-12">
