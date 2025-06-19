@@ -228,12 +228,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return {
       id: data.id,
       name: data.name,
-      type: data.type,
+      type: data.type as Pet['type'],
       species: data.species,
       breed: data.breed,
       weight: data.weight,
       birthDate: data.birth_date,
-      gender: data.gender,
+      gender: data.gender as Pet['gender'],
       ownerId: data.owner_id
     };
   }, [user?.id]);
@@ -286,12 +286,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return {
       id: data.id,
       name: data.name,
-      type: data.type,
+      type: data.type as Pet['type'],
       species: data.species,
       breed: data.breed,
       weight: data.weight,
       birthDate: data.birth_date,
-      gender: data.gender,
+      gender: data.gender as Pet['gender'],
       ownerId: data.owner_id
     };
   }, [user?.id]);

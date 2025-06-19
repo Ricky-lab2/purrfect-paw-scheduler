@@ -79,19 +79,23 @@ export function AppointmentForm() {
 
   // Load user's pets on component mount
   React.useEffect(() => {
-    if (user) {
-      setPetsLoading(true);
-      try {
-        const pets = getUserPets();
-        console.log("Loaded pets:", pets); // Debug log
-        setUserPets(pets || []);
-      } catch (error) {
-        console.error("Error loading user pets:", error);
-        setUserPets([]);
-      } finally {
-        setPetsLoading(false);
+    const loadPets = async () => {
+      if (user) {
+        setPetsLoading(true);
+        try {
+          const pets = await getUserPets();
+          console.log("Loaded pets:", pets); // Debug log
+          setUserPets(pets || []);
+        } catch (error) {
+          console.error("Error loading user pets:", error);
+          setUserPets([]);
+        } finally {
+          setPetsLoading(false);
+        }
       }
-    }
+    };
+
+    loadPets();
   }, [user, getUserPets]);
 
   const watchedSpecies = form.watch("petSpecies");

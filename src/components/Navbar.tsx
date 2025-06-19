@@ -41,7 +41,7 @@ export function Navbar() {
       return;
     }
 
-    const generateNotifications = () => {
+    const generateNotifications = async () => {
       const newNotifications: Notification[] = [];
       const now = new Date();
       const tomorrow = new Date(now);
@@ -51,8 +51,8 @@ export function Navbar() {
 
       try {
         // Get user appointments and pets
-        const appointments = getUserAppointments();
-        const pets = getUserPets();
+        const appointments = await getUserAppointments();
+        const pets = await getUserPets();
 
         console.log("Generating notifications for user:", user.name);
         console.log("User appointments:", appointments);

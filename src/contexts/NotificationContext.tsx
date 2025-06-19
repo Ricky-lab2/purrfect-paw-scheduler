@@ -34,10 +34,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const checkForNotifications = () => {
+    const checkForNotifications = async () => {
       try {
-        const appointments = getUserAppointments();
-        const pets = getUserPets();
+        const appointments = await getUserAppointments();
+        const pets = await getUserPets();
         const now = new Date();
         
         // Check for upcoming appointments within 24 hours
