@@ -25,11 +25,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [currentNotification, setCurrentNotification] = useState<Appointment | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-  const { isAuthenticated, getUserAppointments, getUserPets } = useAuth();
+  const auth = useAuth();
+
+  // Only access auth properties if auth context is available
+  const { isAuthenticated, getUserAppointments, getUserPets } = auth || {};
 
   // Check for real-time notifications
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Early return if auth is not ready or user is not authenticated
+    if (!auth || !isAuthenticated || !getUserAppointments || !getUserPets) {
       setHasUnreadNotifications(false);
       return;
     }
@@ -76,7 +80,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const interval = setInterval(checkForNotifications, 60000);
     
     return () => clearInterval(interval);
-  }, [isAuthenticated, getUserAppointments, getUserPets]);
+  }, [auth, isAuthenticated, getUserAppointments, getUserPets]);
 
   const showNotification = (appointment: Appointment) => {
     setCurrentNotification(appointment);
