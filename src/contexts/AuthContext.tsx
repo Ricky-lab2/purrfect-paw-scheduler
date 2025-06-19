@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
 
 type User = {
   id: string;
@@ -221,15 +221,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(updatedUser);
   };
 
-  // Pet management functions
-  const getUserPets = (): Pet[] => {
+  // Memoize pet management functions
+  const getUserPets = useCallback((): Pet[] => {
     if (!user) return [];
     
     const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
     return allPets.filter((pet: Pet) => pet.ownerId === user.id);
-  };
+  }, [user?.id]);
 
-  const addPet = (pet: Omit<Pet, 'id' | 'ownerId'>): Pet => {
+  const addPet = useCallback((pet: Omit<Pet, 'id' | 'ownerId'>): Pet => {
     if (!user) throw new Error("User not authenticated");
     
     const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
@@ -243,9 +243,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem("pets", JSON.stringify(allPets));
     
     return newPet;
-  };
+  }, [user?.id]);
 
-  const updatePet = (id: string, updates: Partial<Omit<Pet, 'id' | 'ownerId'>>): boolean => {
+  const updatePet = useCallback((id: string, updates: Partial<Omit<Pet, 'id' | 'ownerId'>>): boolean => {
     if (!user) return false;
     
     const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
@@ -258,9 +258,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     return false;
-  };
+  }, [user?.id]);
 
-  const deletePet = (id: string): boolean => {
+  const deletePet = useCallback((id: string): boolean => {
     if (!user) return false;
     
     const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
@@ -272,18 +272,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     return false;
-  };
+  }, [user?.id]);
   
   // Get pet by ID
-  const getPetById = (id: string): Pet | null => {
+  const getPetById = useCallback((id: string): Pet | null => {
     if (!user) return null;
     
     const allPets = JSON.parse(localStorage.getItem("pets") || "[]");
     return allPets.find((pet: Pet) => pet.id === id && pet.ownerId === user.id) || null;
-  };
+  }, [user?.id]);
   
   // Calculate pet age from birthDate
-  const calculatePetAge = (birthDate: string): string => {
+  const calculatePetAge = useCallback((birthDate: string): string => {
     const today = new Date();
     const birth = new Date(birthDate);
     
@@ -308,15 +308,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       return `${years} ${years === 1 ? "year" : "years"} and ${remainingMonths} ${remainingMonths === 1 ? "month" : "months"}`;
     }
-  };
+  }, []);
 
-  // Appointment management functions
-  const getUserAppointments = (): Appointment[] => {
+  // Memoize appointment management functions
+  const getUserAppointments = useCallback((): Appointment[] => {
     if (!user) return [];
     
     const allAppointments = JSON.parse(localStorage.getItem("appointments") || "[]");
     return allAppointments.filter((appointment: Appointment) => appointment.ownerId === user.id);
-  };
+  }, [user?.id]);
 
   const isAuthenticated = user !== null;
   const isAdmin = user?.role === "admin";
