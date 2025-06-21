@@ -8,18 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PetFormData, DEFAULT_PET_FORM } from "./AddPetDialog";
-
-export type Pet = {
-  id: string;
-  name: string;
-  type: "dog" | "cat" | "bird" | "rabbit" | "hamster" | "fish" | "reptile" | "other";
-  species: string;
-  breed?: string;
-  weight?: string;
-  birthDate: string;
-  gender: "male" | "female";
-  ownerId: string;
-};
+import { Pet } from "@/types/auth";
 
 interface EditPetDialogProps {
   isOpen: boolean;

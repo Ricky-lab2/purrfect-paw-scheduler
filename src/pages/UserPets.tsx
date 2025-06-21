@@ -8,7 +8,7 @@ import AddPetDialog from "@/components/pets/AddPetDialog";
 import EditPetDialog from "@/components/pets/EditPetDialog";
 import EmptyPetState from "@/components/pets/EmptyPetState";
 import PetCard from "@/components/pets/PetCard";
-import { Pet } from "@/components/pets/EditPetDialog";
+import { Pet } from "@/types/auth";
 import { Link } from "react-router-dom";
 
 const UserPets = () => {
