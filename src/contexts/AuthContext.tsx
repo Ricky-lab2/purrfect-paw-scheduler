@@ -69,63 +69,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         
         if (session?.user) {
-          try {
-            // Fetch user profile from profiles table
-            const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (profile && !error) {
-              console.log("Profile loaded:", profile);
-              setUser({
-                id: profile.id,
-                name: profile.name,
-                email: profile.email,
-                role: profile.role as "admin" | "customer",
-                phone: profile.phone,
-                address: profile.address,
-              });
-            } else {
-              console.error("Profile load error:", error);
-              // If no profile exists, create a basic user object from session data
-              const basicUser = {
-                id: session.user.id,
-                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-                email: session.user.email || '',
-                role: 'customer' as const,
-              };
+          console.log("User session found, creating user profile");
+          
+          // Create user profile immediately from session data
+          const userProfile: User = {
+            id: session.user.id,
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            role: 'customer',
+          };
+
+          // Check if this is an admin user (based on email)
+          if (session.user.email === 'admin@example.com') {
+            userProfile.role = 'admin';
+          }
+
+          console.log("Setting user profile:", userProfile);
+          setUser(userProfile);
+
+          // Try to fetch/create profile in database asynchronously (don't block login)
+          setTimeout(async () => {
+            try {
+              console.log("Attempting to fetch profile from database");
+              const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
               
-              console.log("Creating basic user object:", basicUser);
-              setUser(basicUser);
-              
-              // Optionally create the profile in the database
-              try {
-                await supabase
+              if (profile && !error) {
+                console.log("Profile found in database, updating user:", profile);
+                setUser({
+                  id: profile.id,
+                  name: profile.name,
+                  email: profile.email,
+                  role: profile.role as "admin" | "customer",
+                  phone: profile.phone,
+                  address: profile.address,
+                });
+              } else {
+                console.log("Profile not found, creating new profile");
+                // Create profile in database
+                const { error: insertError } = await supabase
                   .from('profiles')
                   .insert({
-                    id: basicUser.id,
-                    name: basicUser.name,
-                    email: basicUser.email,
-                    role: basicUser.role
+                    id: userProfile.id,
+                    name: userProfile.name,
+                    email: userProfile.email,
+                    role: userProfile.role
                   });
-                console.log("Profile created in database");
-              } catch (insertError) {
-                console.log("Profile creation failed (may already exist):", insertError);
+                
+                if (insertError) {
+                  console.log("Profile creation error (may already exist):", insertError);
+                } else {
+                  console.log("Profile created successfully");
+                }
               }
+            } catch (error) {
+              console.log("Profile fetch/create error:", error);
+              // Don't block login for profile errors
             }
-          } catch (error) {
-            console.error("Error fetching profile:", error);
-            // Even if profile fetch fails, create user from session
-            setUser({
-              id: session.user.id,
-              name: session.user.email?.split('@')[0] || 'User',
-              email: session.user.email || '',
-              role: 'customer',
-            });
-          }
+          }, 100);
         } else {
+          console.log("No user session, clearing user state");
           setUser(null);
         }
         setIsLoading(false);
@@ -134,13 +140,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error("Error getting session:", error);
-      }
-      console.log("Initial session:", session?.user?.email);
-      setSession(session);
-      if (!session) {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Error getting session:", error);
+        }
+        console.log("Initial session:", session?.user?.email);
+        setSession(session);
+        if (!session) {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
         setIsLoading(false);
       }
     };
@@ -159,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
       });
 
-      console.log("Login response:", { data: data.user?.email, error: error?.message });
+      console.log("Login response:", { user: data.user?.email, error: error?.message });
 
       if (error) {
         console.error('Login error:', error.message);
