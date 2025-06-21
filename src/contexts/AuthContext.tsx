@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser, Session } from "@supabase/supabase-js";
@@ -90,17 +89,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
             } else {
               console.error("Profile load error:", error);
-              // If no profile exists, create a basic user object
-              setUser({
+              // If no profile exists, create a basic user object from session data
+              const basicUser = {
                 id: session.user.id,
-                name: session.user.email?.split('@')[0] || 'User',
+                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
                 email: session.user.email || '',
-                role: 'customer',
-              });
+                role: 'customer' as const,
+              };
+              
+              console.log("Creating basic user object:", basicUser);
+              setUser(basicUser);
+              
+              // Optionally create the profile in the database
+              try {
+                await supabase
+                  .from('profiles')
+                  .insert({
+                    id: basicUser.id,
+                    name: basicUser.name,
+                    email: basicUser.email,
+                    role: basicUser.role
+                  });
+                console.log("Profile created in database");
+              } catch (insertError) {
+                console.log("Profile creation failed (may already exist):", insertError);
+              }
             }
           } catch (error) {
             console.error("Error fetching profile:", error);
-            setUser(null);
+            // Even if profile fetch fails, create user from session
+            setUser({
+              id: session.user.id,
+              name: session.user.email?.split('@')[0] || 'User',
+              email: session.user.email || '',
+              role: 'customer',
+            });
           }
         } else {
           setUser(null);
