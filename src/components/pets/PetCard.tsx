@@ -1,9 +1,8 @@
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, Pencil, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Pet } from "./EditPetDialog";
+import { Pet } from "@/types/auth";
 
 interface PetCardProps {
   pet: Pet;
