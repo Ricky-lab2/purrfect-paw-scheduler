@@ -34,12 +34,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Initialize auth state
   useEffect(() => {
+    let isMounted = true;
+    
     console.log("Setting up auth state listener");
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.email);
+        
+        if (!isMounted) return;
+        
         setSession(session);
         
         if (session?.user) {
@@ -59,29 +64,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           console.log("Setting user profile:", userProfile);
-          setUser(userProfile);
+          if (isMounted) {
+            setUser(userProfile);
+          }
 
-          // Try to fetch/create profile in database asynchronously (don't block login)
+          // Try to fetch profile from database asynchronously (don't block login)
+          // Use a timeout to prevent blocking the UI
           setTimeout(async () => {
+            if (!isMounted) return;
+            
             try {
               console.log("Attempting to fetch profile from database");
-              const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
               
-              if (profile && !error) {
-                console.log("Profile found in database, updating user:", profile);
-                setUser({
-                  id: profile.id,
-                  name: profile.name,
-                  email: profile.email,
-                  role: profile.role as "admin" | "customer",
-                  phone: profile.phone,
-                  address: profile.address,
-                });
-              } else {
+              // First check if profile exists without selecting all columns to avoid RLS issues
+              const { data: existingProfile, error: checkError } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('id', session.user.id)
+                .maybeSingle();
+              
+              if (checkError) {
+                console.log("Profile check error:", checkError);
+                return; // Don't block on profile errors
+              }
+              
+              if (!existingProfile) {
                 console.log("Profile not found, creating new profile");
                 // Create profile in database
                 const { error: insertError } = await supabase
@@ -98,17 +105,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 } else {
                   console.log("Profile created successfully");
                 }
+              } else {
+                console.log("Profile exists in database");
+                
+                // Try to get full profile data
+                const { data: fullProfile, error: fullError } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .eq('id', session.user.id)
+                  .maybeSingle();
+                
+                if (fullProfile && !fullError && isMounted) {
+                  console.log("Full profile loaded:", fullProfile);
+                  setUser({
+                    id: fullProfile.id,
+                    name: fullProfile.name,
+                    email: fullProfile.email,
+                    role: fullProfile.role as "admin" | "customer",
+                    phone: fullProfile.phone,
+                    address: fullProfile.address,
+                  });
+                }
               }
             } catch (error) {
               console.log("Profile fetch/create error:", error);
               // Don't block login for profile errors
             }
-          }, 100);
+          }, 500);
         } else {
           console.log("No user session, clearing user state");
-          setUser(null);
+          if (isMounted) {
+            setUser(null);
+          }
         }
-        setIsLoading(false);
+        
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     );
 
@@ -120,19 +153,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error("Error getting session:", error);
         }
         console.log("Initial session:", session?.user?.email);
-        setSession(session);
-        if (!session) {
-          setIsLoading(false);
+        
+        if (isMounted) {
+          setSession(session);
+          if (!session) {
+            setIsLoading(false);
+          }
         }
       } catch (error) {
         console.error("Session check error:", error);
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     getInitialSession();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {

@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 
 interface Appointment {
@@ -27,74 +27,77 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const auth = useAuth();
 
-  // Only access auth properties if auth context is available
-  const { isAuthenticated, getUserAppointments, getUserPets } = auth || {};
-
-  // Check for real-time notifications
-  useEffect(() => {
+  const checkForNotifications = useCallback(async () => {
     // Early return if auth is not ready or user is not authenticated
-    if (!auth || !isAuthenticated || !getUserAppointments || !getUserPets) {
+    if (!auth || !auth.isAuthenticated || !auth.getUserAppointments || !auth.getUserPets) {
       setHasUnreadNotifications(false);
       return;
     }
 
-    const checkForNotifications = async () => {
-      try {
-        const appointments = await getUserAppointments();
-        const pets = await getUserPets();
-        const now = new Date();
-        
-        // Check for upcoming appointments within 24 hours
-        const upcomingAppointments = appointments.filter(apt => {
-          const appointmentDate = new Date(apt.date);
-          const timeDiff = appointmentDate.getTime() - now.getTime();
-          const hoursDiff = timeDiff / (1000 * 3600);
-          return hoursDiff > 0 && hoursDiff <= 24;
-        });
+    try {
+      const appointments = await auth.getUserAppointments();
+      const pets = await auth.getUserPets();
+      const now = new Date();
+      
+      // Check for upcoming appointments within 24 hours
+      const upcomingAppointments = appointments.filter(apt => {
+        const appointmentDate = new Date(apt.date);
+        const timeDiff = appointmentDate.getTime() - now.getTime();
+        const hoursDiff = timeDiff / (1000 * 3600);
+        return hoursDiff > 0 && hoursDiff <= 24;
+      });
 
-        // Check for pets needing vaccinations
-        const petsNeedingVaccination = pets.filter(pet => {
-          const birthDate = new Date(pet.birthDate);
-          const ageInMonths = (now.getTime() - birthDate.getTime()) / (1000 * 3600 * 24 * 30);
-          return ageInMonths >= 6;
-        });
+      // Check for pets needing vaccinations
+      const petsNeedingVaccination = pets.filter(pet => {
+        const birthDate = new Date(pet.birthDate);
+        const ageInMonths = (now.getTime() - birthDate.getTime()) / (1000 * 3600 * 24 * 30);
+        return ageInMonths >= 6;
+      });
 
-        const hasNotifications = upcomingAppointments.length > 0 || petsNeedingVaccination.length > 0 || pets.length > 0;
-        setHasUnreadNotifications(hasNotifications);
-        
-        console.log("Notification check:", {
-          upcomingAppointments: upcomingAppointments.length,
-          petsNeedingVaccination: petsNeedingVaccination.length,
-          totalPets: pets.length,
-          hasNotifications
-        });
-        
-      } catch (error) {
-        console.error("Error checking notifications:", error);
-      }
-    };
+      const hasNotifications = upcomingAppointments.length > 0 || petsNeedingVaccination.length > 0 || pets.length > 0;
+      setHasUnreadNotifications(hasNotifications);
+      
+      console.log("Notification check:", {
+        upcomingAppointments: upcomingAppointments.length,
+        petsNeedingVaccination: petsNeedingVaccination.length,
+        totalPets: pets.length,
+        hasNotifications
+      });
+      
+    } catch (error) {
+      console.error("Error checking notifications:", error);
+      // Don't set hasUnreadNotifications to false on error to avoid flickering
+    }
+  }, [auth]);
 
-    checkForNotifications();
-    
-    // Check every minute for real-time updates
-    const interval = setInterval(checkForNotifications, 60000);
-    
-    return () => clearInterval(interval);
-  }, [auth, isAuthenticated, getUserAppointments, getUserPets]);
+  // Check for real-time notifications with proper dependency management
+  useEffect(() => {
+    // Only run if we have authenticated user
+    if (auth?.isAuthenticated) {
+      checkForNotifications();
+      
+      // Check every 5 minutes instead of every minute to reduce load
+      const interval = setInterval(checkForNotifications, 300000);
+      
+      return () => clearInterval(interval);
+    } else {
+      setHasUnreadNotifications(false);
+    }
+  }, [auth?.isAuthenticated, checkForNotifications]);
 
-  const showNotification = (appointment: Appointment) => {
+  const showNotification = useCallback((appointment: Appointment) => {
     setCurrentNotification(appointment);
     setIsVisible(true);
-  };
+  }, []);
 
-  const hideNotification = () => {
+  const hideNotification = useCallback(() => {
     setIsVisible(false);
     setTimeout(() => setCurrentNotification(null), 300); // Allow fade out animation
-  };
+  }, []);
 
-  const markAllAsRead = () => {
+  const markAllAsRead = useCallback(() => {
     setHasUnreadNotifications(false);
-  };
+  }, []);
 
   return (
     <NotificationContext.Provider value={{
