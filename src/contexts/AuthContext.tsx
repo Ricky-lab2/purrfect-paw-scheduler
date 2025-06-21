@@ -61,6 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Initialize auth state
   useEffect(() => {
+    console.log("Setting up auth state listener");
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -68,22 +70,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         
         if (session?.user) {
-          // Fetch user profile from profiles table
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profile && !error) {
-            setUser({
-              id: profile.id,
-              name: profile.name,
-              email: profile.email,
-              role: profile.role as "admin" | "customer",
-              phone: profile.phone,
-              address: profile.address,
-            });
+          try {
+            // Fetch user profile from profiles table
+            const { data: profile, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (profile && !error) {
+              console.log("Profile loaded:", profile);
+              setUser({
+                id: profile.id,
+                name: profile.name,
+                email: profile.email,
+                role: profile.role as "admin" | "customer",
+                phone: profile.phone,
+                address: profile.address,
+              });
+            } else {
+              console.error("Profile load error:", error);
+              // If no profile exists, create a basic user object
+              setUser({
+                id: session.user.id,
+                name: session.user.email?.split('@')[0] || 'User',
+                email: session.user.email || '',
+                role: 'customer',
+              });
+            }
+          } catch (error) {
+            console.error("Error fetching profile:", error);
+            setUser(null);
           }
         } else {
           setUser(null);
@@ -93,29 +110,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const getInitialSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error("Error getting session:", error);
+      }
+      console.log("Initial session:", session?.user?.email);
       setSession(session);
       if (!session) {
         setIsLoading(false);
       }
-    });
+    };
+
+    getInitialSession();
 
     return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    console.log("Login attempt for:", email);
+    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      console.log("Login response:", { data: data.user?.email, error: error?.message });
+
       if (error) {
         console.error('Login error:', error.message);
         return false;
       }
 
-      return !!data.user;
+      if (data.user) {
+        console.log("Login successful for:", data.user.email);
+        return true;
+      }
+
+      return false;
     } catch (error) {
       console.error('Login error:', error);
       return false;
@@ -352,6 +385,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAuthenticated = !!session && !!user;
   const isAdmin = user?.role === "admin";
+
+  console.log("Auth context state:", { 
+    isAuthenticated, 
+    isAdmin, 
+    isLoading, 
+    userEmail: user?.email,
+    sessionExists: !!session 
+  });
 
   return (
     <AuthContext.Provider 
