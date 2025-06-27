@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
 
 export type PetFormData = {
   name: string;
@@ -39,6 +38,7 @@ const AddPetDialog = ({ isOpen, setIsOpen, onPetAdded }: AddPetDialogProps) => {
   const { addPet, user } = useAuth();
   const { toast } = useToast();
   const [formData, setFormData] = useState<PetFormData>(DEFAULT_PET_FORM);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const handleFormChange = (field: keyof PetFormData, value: any) => {
     setFormData(prev => {
@@ -51,18 +51,32 @@ const AddPetDialog = ({ isOpen, setIsOpen, onPetAdded }: AddPetDialogProps) => {
     });
   };
   
-  const handleAddPet = () => {
+  const handleAddPet = async () => {
+    if (!formData.name.trim()) {
+      toast({
+        title: "Pet name required",
+        description: "Please enter your pet's name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.birthDate) {
+      toast({
+        title: "Birth date required",
+        description: "Please enter your pet's birth date.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
-      if (!formData.birthDate) {
-        toast({
-          title: "Birth date required",
-          description: "Please enter your pet's birth date.",
-          variant: "destructive",
-        });
-        return;
-      }
+      setIsSubmitting(true);
+      console.log("Adding pet with data:", formData);
       
-      addPet(formData);
+      await addPet(formData);
+      
+      console.log("Pet added successfully");
       setIsOpen(false);
       setFormData(DEFAULT_PET_FORM);
       onPetAdded();
@@ -72,11 +86,14 @@ const AddPetDialog = ({ isOpen, setIsOpen, onPetAdded }: AddPetDialogProps) => {
         description: `${formData.name} has been added to your pets.`,
       });
     } catch (error) {
+      console.error("Error adding pet:", error);
       toast({
         title: "Error",
         description: "Failed to add pet. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -187,11 +204,14 @@ const AddPetDialog = ({ isOpen, setIsOpen, onPetAdded }: AddPetDialogProps) => {
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
+          <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleAddPet} disabled={!formData.name || !formData.birthDate}>
-            Add Pet
+          <Button 
+            onClick={handleAddPet} 
+            disabled={!formData.name.trim() || !formData.birthDate || isSubmitting}
+          >
+            {isSubmitting ? "Adding..." : "Add Pet"}
           </Button>
         </DialogFooter>
       </DialogContent>
