@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Dialog,
@@ -6,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +21,7 @@ import { CalendarDays } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface PetFormData {
+export interface PetFormData {
   name: string;
   type: string;
   species: string;
@@ -29,6 +31,16 @@ interface PetFormData {
   gender: "male" | "female";
 }
 
+export const DEFAULT_PET_FORM: PetFormData = {
+  name: "",
+  type: "",
+  species: "",
+  breed: "",
+  weight: "",
+  birthDate: "",
+  gender: "male",
+};
+
 interface AddPetDialogProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
@@ -36,30 +48,14 @@ interface AddPetDialogProps {
 }
 
 const AddPetDialog: React.FC<AddPetDialogProps> = ({ isOpen, setIsOpen, onPetAdded }) => {
-  const [formData, setFormData] = useState<PetFormData>({
-    name: "",
-    type: "",
-    species: "",
-    breed: "",
-    weight: "",
-    birthDate: "",
-    gender: "male",
-  });
+  const [formData, setFormData] = useState<PetFormData>(DEFAULT_PET_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [date, setDate] = useState<Date | undefined>(undefined);
   const { addPet } = useAuth();
   const { toast } = useToast();
   
   const resetForm = () => {
-    setFormData({
-      name: "",
-      type: "",
-      species: "",
-      breed: "",
-      weight: "",
-      birthDate: "",
-      gender: "male",
-    });
+    setFormData(DEFAULT_PET_FORM);
     setDate(undefined);
   };
   
@@ -231,12 +227,12 @@ const AddPetDialog: React.FC<AddPetDialogProps> = ({ isOpen, setIsOpen, onPetAdd
               </SelectContent>
             </Select>
           </div>
+          <DialogFooter>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Adding..." : "Add Pet"}
+            </Button>
+          </DialogFooter>
         </form>
-        <DialogFooter>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Adding..." : "Add Pet"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
