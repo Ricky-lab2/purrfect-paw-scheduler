@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Signup = () => {
@@ -35,7 +35,7 @@ const Signup = () => {
     setIsLoading(true);
     
     try {
-      const success = await signup(name, email, password);
+      const success = await signup(email, password, name);
       
       if (success) {
         toast({

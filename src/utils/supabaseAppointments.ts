@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface SupabaseAppointment {
   id?: string;
-  owner_id?: string;
+  owner_id: string;
   pet_name: string;
   service: string;
   appointment_date: string;
@@ -34,7 +34,7 @@ export const saveAppointmentToSupabase = async (appointmentData: any) => {
 
     const { data, error } = await supabase
       .from('appointments')
-      .insert([supabaseAppointment])
+      .insert(supabaseAppointment)
       .select()
       .single();
 
