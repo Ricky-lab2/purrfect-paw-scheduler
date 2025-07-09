@@ -1,14 +1,25 @@
-
 import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { CalendarDays } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
-export type PetFormData = {
+interface PetFormData {
   name: string;
   type: string;
   species: string;
@@ -16,79 +27,80 @@ export type PetFormData = {
   weight?: string;
   birthDate: string;
   gender: "male" | "female";
-};
-
-export const DEFAULT_PET_FORM: PetFormData = {
-  name: "",
-  type: "dog",
-  species: "dog",
-  breed: "",
-  weight: "",
-  birthDate: "",
-  gender: "male"
-};
+}
 
 interface AddPetDialogProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
-  onPetAdded: () => void;
+  onPetAdded?: () => void;
 }
 
-const AddPetDialog = ({ isOpen, setIsOpen, onPetAdded }: AddPetDialogProps) => {
-  const { addPet, user } = useAuth();
-  const { toast } = useToast();
-  const [formData, setFormData] = useState<PetFormData>(DEFAULT_PET_FORM);
+const AddPetDialog: React.FC<AddPetDialogProps> = ({ isOpen, setIsOpen, onPetAdded }) => {
+  const [formData, setFormData] = useState<PetFormData>({
+    name: "",
+    type: "",
+    species: "",
+    breed: "",
+    weight: "",
+    birthDate: "",
+    gender: "male",
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [date, setDate] = useState<Date | undefined>(undefined);
+  const { addPet } = useAuth();
+  const { toast } = useToast();
   
-  const handleFormChange = (field: keyof PetFormData, value: any) => {
-    setFormData(prev => {
-      const updated = { ...prev, [field]: value };
-      // Auto-update species when type changes for simple types
-      if (field === "type" && ["dog", "cat", "bird", "fish", "hamster", "rabbit"].includes(value)) {
-        updated.species = value;
-      }
-      return updated;
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      type: "",
+      species: "",
+      breed: "",
+      weight: "",
+      birthDate: "",
+      gender: "male",
     });
+    setDate(undefined);
   };
   
-  const handleAddPet = async () => {
-    if (!formData.name.trim()) {
-      toast({
-        title: "Pet name required",
-        description: "Please enter your pet's name.",
-        variant: "destructive",
-      });
-      return;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+  
+  const handleDateSelect = (date: Date | undefined) => {
+    setDate(date);
+    if (date) {
+      const formattedDate = format(date, "yyyy-MM-dd");
+      setFormData({ ...formData, birthDate: formattedDate });
     }
+  };
 
-    if (!formData.birthDate) {
-      toast({
-        title: "Birth date required",
-        description: "Please enter your pet's birth date.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
     
     try {
-      setIsSubmitting(true);
-      console.log("Adding pet with data:", formData);
+      // Ensure breed and weight have default values
+      const petData = {
+        ...formData,
+        breed: formData.breed || '',
+        weight: formData.weight || ''
+      };
       
-      await addPet(formData);
-      
-      console.log("Pet added successfully");
+      await addPet(petData);
       setIsOpen(false);
-      setFormData(DEFAULT_PET_FORM);
-      onPetAdded();
+      resetForm();
+      onPetAdded?.();
       
       toast({
-        title: "Pet added",
+        title: "Pet added successfully",
         description: `${formData.name} has been added to your pets.`,
       });
     } catch (error) {
       console.error("Error adding pet:", error);
       toast({
-        title: "Error",
+        title: "Error adding pet",
         description: "Failed to add pet. Please try again.",
         variant: "destructive",
       });
@@ -99,118 +111,129 @@ const AddPetDialog = ({ isOpen, setIsOpen, onPetAdded }: AddPetDialogProps) => {
   
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Pet</DialogTitle>
           <DialogDescription>
-            Enter your pet's information below
+            Fill in the information below to add a new pet to your profile.
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Pet Name*</Label>
+        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+              Name
+            </Label>
             <Input
+              type="text"
               id="name"
+              name="name"
               value={formData.name}
-              onChange={(e) => handleFormChange("name", e.target.value)}
-              placeholder="Enter pet name"
+              onChange={handleInputChange}
+              className="col-span-3"
               required
             />
           </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="type">Pet Type*</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value) => handleFormChange("type", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dog">Dog</SelectItem>
-                  <SelectItem value="cat">Cat</SelectItem>
-                  <SelectItem value="bird">Bird</SelectItem>
-                  <SelectItem value="rabbit">Rabbit</SelectItem>
-                  <SelectItem value="hamster">Hamster</SelectItem>
-                  <SelectItem value="fish">Fish</SelectItem>
-                  <SelectItem value="reptile">Reptile</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="gender">Gender*</Label>
-              <Select
-                value={formData.gender}
-                onValueChange={(value) => handleFormChange("gender", value as "male" | "female")}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="breed">Breed (Optional)</Label>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="type" className="text-right">
+              Type
+            </Label>
             <Input
+              type="text"
+              id="type"
+              name="type"
+              value={formData.type}
+              onChange={handleInputChange}
+              className="col-span-3"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="species" className="text-right">
+              Species
+            </Label>
+            <Input
+              type="text"
+              id="species"
+              name="species"
+              value={formData.species}
+              onChange={handleInputChange}
+              className="col-span-3"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="breed" className="text-right">
+              Breed
+            </Label>
+            <Input
+              type="text"
               id="breed"
+              name="breed"
               value={formData.breed}
-              onChange={(e) => handleFormChange("breed", e.target.value)}
-              placeholder="Enter breed"
+              onChange={handleInputChange}
+              className="col-span-3"
             />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="weight">Weight (Optional)</Label>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="weight" className="text-right">
+              Weight
+            </Label>
             <Input
+              type="text"
               id="weight"
+              name="weight"
               value={formData.weight}
-              onChange={(e) => handleFormChange("weight", e.target.value)}
-              placeholder="Enter weight (e.g., 5 kg, 10 lbs)"
+              onChange={handleInputChange}
+              className="col-span-3"
             />
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="birthDate">Birth Date*</Label>
-            <Input
-              id="birthDate"
-              type="date"
-              value={formData.birthDate}
-              onChange={(e) => handleFormChange("birthDate", e.target.value)}
-              required
-              max={new Date().toISOString().split('T')[0]}
-            />
-            <p className="text-xs text-muted-foreground">Required to calculate your pet's age</p>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="birthDate" className="text-right">
+              Birth Date
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "col-span-3 pl-3 font-normal text-left",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  <CalendarDays className="ml-auto h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={handleDateSelect}
+                  disabled={(date) =>
+                    date > new Date() || date < new Date("1900-01-01")
+                  }
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="owner">Owner</Label>
-            <Input
-              id="owner"
-              value={user?.name || ""}
-              disabled
-              className="bg-gray-50"
-            />
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="gender" className="text-right">
+              Gender
+            </Label>
+            <Select onValueChange={(value) => setFormData({ ...formData, gender: value as "male" | "female" })}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-        
+        </form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleAddPet} 
-            disabled={!formData.name.trim() || !formData.birthDate || isSubmitting}
-          >
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Adding..." : "Add Pet"}
           </Button>
         </DialogFooter>

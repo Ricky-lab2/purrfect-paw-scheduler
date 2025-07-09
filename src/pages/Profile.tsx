@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,18 +9,20 @@ import { UserRound, Mail, Phone, Edit } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Profile = () => {
-  const { user, updateUserProfile } = useAuth();
+  const { user, updateProfile, isLoading } = useAuth();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
   const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(user?.name || "");
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [address, setAddress] = useState(user?.address || "");
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    updateUserProfile({ name, phone, address });
+    updateProfile({ name, email, phone, address });
     
     toast({
       title: "Profile updated",
@@ -70,11 +71,10 @@ const Profile = () => {
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
-                      value={user?.email}
-                      disabled
-                      className="bg-gray-50"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Your email"
                     />
-                    <p className="text-xs text-muted-foreground">Email address cannot be changed</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>

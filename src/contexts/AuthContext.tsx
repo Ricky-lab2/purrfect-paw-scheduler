@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,44 +6,22 @@ import { useToast } from '@/hooks/use-toast';
 import { AuthUser, Pet } from '@/types/auth';
 import { getUserAppointmentsFromSupabase } from '@/utils/supabaseAppointments';
 
-interface Pet {
-  id: string;
-  name: string;
-  type: string;
-  species: string;
-  breed: string;
-  weight: string;
-  gender: string;
-  birthDate: string;
-  ownerId: string;
-}
-
-interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  role: 'customer' | 'admin';
-  phone: string;
-  address: string;
-  pets: Pet[];
-  appointments: any[];
-}
-
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateProfile: (profileData: Partial<AuthUser>) => Promise<void>;
   getUserPets: () => Pet[];
   addPet: (petData: Omit<Pet, 'id' | 'ownerId'>) => Promise<void>;
   updatePet: (petId: string, petData: Partial<Pet>) => Promise<void>;
-  deletePet: (petId: string) => Promise<void>;
+  deletePet: (petId: string) => Promise<boolean>;
   calculatePetAge: (birthDate: string) => string;
   refreshUserData: () => Promise<void>;
+  getUserAppointments: () => Promise<any[]>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -80,7 +59,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -96,7 +75,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           title: "Welcome back!",
           description: "You have successfully logged in.",
         });
+        return true;
       }
+      return false;
     } catch (error: any) {
       console.error('Login error:', error);
       toast({
@@ -104,13 +85,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         description: error.message || "Please check your credentials and try again.",
         variant: "destructive",
       });
-      throw error;
+      return false;
     } finally {
       setIsLoading(false);
     }
   }, [toast]);
 
-  const signup = useCallback(async (email: string, password: string, name: string) => {
+  const signup = useCallback(async (email: string, password: string, name: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase.auth.signUp({
@@ -132,7 +113,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           title: "Signup successful!",
           description: "You have successfully signed up. Welcome!",
         });
+        return true;
       }
+      return false;
     } catch (error: any) {
       console.error('Signup error:', error);
       toast({
@@ -140,7 +123,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         description: error.message || "Please check your information and try again.",
         variant: "destructive",
       });
-      throw error;
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -207,7 +190,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const { data, error } = await supabase
         .from('pets')
-        .insert([{ ...petData, owner_id: user.id }])
+        .insert([{ 
+          ...petData, 
+          owner_id: user.id,
+          birth_date: petData.birthDate,
+          breed: petData.breed || '',
+          weight: petData.weight || ''
+        }])
         .select()
         .single();
 
@@ -220,7 +209,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         species: data.species,
         breed: data.breed || '',
         weight: data.weight || '',
-        gender: data.gender,
+        gender: data.gender as "male" | "female",
         birthDate: data.birth_date,
         ownerId: user.id
       };
@@ -249,9 +238,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updatePet = useCallback(async (petId: string, petData: Partial<Pet>) => {
     try {
       setIsLoading(true);
+      const updateData: any = { ...petData };
+      if (petData.birthDate) {
+        updateData.birth_date = petData.birthDate;
+        delete updateData.birthDate;
+      }
+
       const { data, error } = await supabase
         .from('pets')
-        .update(petData)
+        .update(updateData)
         .eq('id', petId)
         .select()
         .single();
@@ -282,7 +277,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [toast]);
 
-  const deletePet = useCallback(async (petId: string) => {
+  const deletePet = useCallback(async (petId: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       const { error } = await supabase
@@ -298,10 +293,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { ...prevUser, pets: updatedPets };
       });
 
-      toast({
-        title: "Pet deleted",
-        description: "The pet has been removed from your profile.",
-      });
+      return true;
     } catch (error: any) {
       console.error('Delete pet error:', error);
       toast({
@@ -309,10 +301,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         description: error.message || "Could not delete pet. Please try again.",
         variant: "destructive",
       });
+      return false;
     } finally {
       setIsLoading(false);
     }
   }, [toast]);
+
+  const getUserAppointments = useCallback(async () => {
+    try {
+      const appointments = await getUserAppointmentsFromSupabase();
+      return appointments.map(apt => ({
+        id: apt.id,
+        petName: apt.pet_name,
+        service: apt.service,
+        date: apt.appointment_date,
+        timeSlot: apt.time_slot,
+        ownerName: apt.owner_name,
+        ownerId: apt.owner_id,
+        status: apt.status
+      }));
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      return [];
+    }
+  }, []);
 
   const fetchUserProfile = useCallback(async (authUser: User) => {
     try {
@@ -336,11 +348,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.error('Error fetching pets:', petsError);
       }
 
-      const { data: appointments, error: appointmentsError } = await getUserAppointmentsFromSupabase();
-      
-      if (appointmentsError) {
-        console.error('Error fetching appointments:', appointmentsError);
-      }
+      const appointments = await getUserAppointmentsFromSupabase();
 
       const userData: AuthUser = {
         id: authUser.id,
@@ -356,7 +364,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           species: pet.species,
           breed: pet.breed || '',
           weight: pet.weight || '',
-          gender: pet.gender,
+          gender: pet.gender as "male" | "female",
           birthDate: pet.birth_date,
           ownerId: pet.owner_id
         })) || [],
@@ -368,6 +376,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Error in fetchUserProfile:', error);
     }
   }, []);
+
+  const refreshUserData = useCallback(async () => {
+    if (user) {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        await fetchUserProfile(authUser);
+      }
+    }
+  }, [user, fetchUserProfile]);
 
   useEffect(() => {
     let mounted = true;
@@ -417,194 +434,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isAdmin,
     isLoading,
     login,
-    signup: async (email: string, password: string, name: string) => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              name: name,
-              role: 'customer',
-            },
-          },
-        });
-  
-        if (error) throw error;
-  
-        if (data.user) {
-          await fetchUserProfile(data.user);
-          toast({
-            title: "Signup successful!",
-            description: "You have successfully signed up. Welcome!",
-          });
-        }
-      } catch (error: any) {
-        console.error('Signup error:', error);
-        toast({
-          title: "Signup failed",
-          description: error.message || "Please check your information and try again.",
-          variant: "destructive",
-        });
-        throw error;
-      } finally {
-        setIsLoading(false);
-      }
-    },
+    signup,
     logout,
-    updateProfile: async (profileData: Partial<AuthUser>) => {
-      try {
-        setIsLoading(true);
-        if (!user) throw new Error("No user logged in");
-  
-        const { error } = await supabase
-          .from('profiles')
-          .update(profileData)
-          .eq('id', user.id);
-  
-        if (error) throw error;
-  
-        // Optimistically update the local state
-        setUser(prevUser => ({ ...prevUser!, ...profileData }));
-  
-        toast({
-          title: "Profile updated",
-          description: "Your profile has been successfully updated.",
-        });
-      } catch (error: any) {
-        console.error('Update profile error:', error);
-        toast({
-          title: "Update failed",
-          description: error.message || "Failed to update profile.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    },
+    updateProfile,
     getUserPets: () => user?.pets || [],
-    addPet: async (petData: Omit<Pet, 'id' | 'ownerId'>) => {
-      try {
-        setIsLoading(true);
-        if (!user) throw new Error("No user logged in");
-  
-        const { data, error } = await supabase
-          .from('pets')
-          .insert([{ ...petData, owner_id: user.id }])
-          .select()
-          .single();
-  
-        if (error) throw error;
-  
-        const newPet: Pet = {
-          id: data.id,
-          name: data.name,
-          type: data.type,
-          species: data.species,
-          breed: data.breed || '',
-          weight: data.weight || '',
-          gender: data.gender,
-          birthDate: data.birth_date,
-          ownerId: user.id
-        };
-  
-        setUser(prevUser => ({
-          ...prevUser!,
-          pets: [...(prevUser?.pets || []), newPet],
-        }));
-  
-        toast({
-          title: "Pet added",
-          description: `${petData.name} has been added to your profile.`,
-        });
-      } catch (error: any) {
-        console.error('Add pet error:', error);
-        toast({
-          title: "Failed to add pet",
-          description: error.message || "Could not add pet. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    updatePet: async (petId: string, petData: Partial<Pet>) => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('pets')
-          .update(petData)
-          .eq('id', petId)
-          .select()
-          .single();
-  
-        if (error) throw error;
-  
-        setUser(prevUser => {
-          if (!prevUser) return prevUser;
-          const updatedPets = prevUser.pets.map(pet =>
-            pet.id === petId ? { ...pet, ...petData } : pet
-          );
-          return { ...prevUser, pets: updatedPets };
-        });
-  
-        toast({
-          title: "Pet updated",
-          description: "Pet details have been updated successfully.",
-        });
-      } catch (error: any) {
-        console.error('Update pet error:', error);
-        toast({
-          title: "Failed to update pet",
-          description: error.message || "Could not update pet. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    deletePet: async (petId: string) => {
-      try {
-        setIsLoading(true);
-        const { error } = await supabase
-          .from('pets')
-          .delete()
-          .eq('id', petId);
-  
-        if (error) throw error;
-  
-        setUser(prevUser => {
-          if (!prevUser) return prevUser;
-          const updatedPets = prevUser.pets.filter(pet => pet.id !== petId);
-          return { ...prevUser, pets: updatedPets };
-        });
-  
-        toast({
-          title: "Pet deleted",
-          description: "The pet has been removed from your profile.",
-        });
-      } catch (error: any) {
-        console.error('Delete pet error:', error);
-        toast({
-          title: "Failed to delete pet",
-          description: error.message || "Could not delete pet. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    },
+    addPet,
+    updatePet,
+    deletePet,
     calculatePetAge,
-    refreshUserData: async () => {
-      if (user) {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (authUser) {
-          await fetchUserProfile(authUser);
-        }
-      }
-    }
-  }), [user, isAuthenticated, isAdmin, isLoading, login, logout, calculatePetAge, fetchUserProfile]);
+    refreshUserData,
+    getUserAppointments
+  }), [user, isAuthenticated, isAdmin, isLoading, login, signup, logout, updateProfile, addPet, updatePet, deletePet, calculatePetAge, refreshUserData, getUserAppointments]);
 
   return (
     <AuthContext.Provider value={contextValue}>

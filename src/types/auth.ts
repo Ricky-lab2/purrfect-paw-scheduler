@@ -8,6 +8,17 @@ export type User = {
   address?: string;
 };
 
+export type AuthUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: 'customer' | 'admin';
+  phone: string;
+  address: string;
+  pets: Pet[];
+  appointments: any[];
+};
+
 export type Pet = {
   id: string;
   name: string;
