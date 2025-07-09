@@ -1,291 +1,381 @@
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
+import { getUserAppointmentsFromSupabase } from '@/utils/supabaseAppointments';
 
-import React, { createContext, useState, useContext, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
-import { User, Pet, Appointment } from "@/types/auth";
-import { usePetManagement } from "@/hooks/usePetManagement";
+interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  role: 'customer' | 'admin';
+}
 
-type AuthContextType = {
-  user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  updateUserProfile: (updates: Partial<User>) => Promise<void>;
-  getUserPets: () => Promise<Pet[]>;
-  addPet: (pet: Omit<Pet, 'id' | 'ownerId'>) => Promise<Pet>;
-  updatePet: (id: string, updates: Partial<Omit<Pet, 'id' | 'ownerId'>>) => Promise<boolean>;
-  deletePet: (id: string) => Promise<boolean>;
-  getPetById: (id: string) => Promise<Pet | null>;
-  calculatePetAge: (birthDate: string) => string;
-  getUserAppointments: () => Promise<Appointment[]>;
+interface Pet {
+  id: string;
+  name: string;
+  type: string;
+  species: string;
+  breed?: string;
+  weight?: string;
+  birthDate: string;
+  gender: 'male' | 'female';
+  ownerId: string;
+}
+
+interface AuthContextType {
+  user: AuthUser | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
-};
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => Promise<void>;
+  updateProfile: (updates: Partial<AuthUser>) => Promise<void>;
+  getUserPets: () => Promise<Pet[]>;
+  addPet: (pet: Omit<Pet, 'id' | 'ownerId'>) => Promise<Pet>;
+  updatePet: (id: string, updates: Partial<Pet>) => Promise<void>;
+  deletePet: (id: string) => Promise<void>;
+  getUserAppointments: () => Promise<any[]>;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const petManagement = usePetManagement(user);
-
-  // Initialize auth state
-  useEffect(() => {
-    let isMounted = true;
-    
-    console.log("Setting up auth state listener");
-    
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
-        
-        if (!isMounted) return;
-        
-        setSession(session);
-        
-        if (session?.user) {
-          console.log("User session found, creating user profile");
-          
-          // Create user profile immediately from session data
-          const userProfile: User = {
-            id: session.user.id,
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-            email: session.user.email || '',
-            role: 'customer',
-          };
-
-          // Check if this is an admin user (based on email)
-          if (session.user.email === 'admin@example.com') {
-            userProfile.role = 'admin';
-          }
-
-          console.log("Setting user profile:", userProfile);
-          if (isMounted) {
-            setUser(userProfile);
-          }
-
-          // Try to fetch profile from database asynchronously (don't block login)
-          // Use a timeout to prevent blocking the UI
-          setTimeout(async () => {
-            if (!isMounted) return;
-            
-            try {
-              console.log("Attempting to fetch profile from database");
-              
-              // First check if profile exists without selecting all columns to avoid RLS issues
-              const { data: existingProfile, error: checkError } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('id', session.user.id)
-                .maybeSingle();
-              
-              if (checkError) {
-                console.log("Profile check error:", checkError);
-                return; // Don't block on profile errors
-              }
-              
-              if (!existingProfile) {
-                console.log("Profile not found, creating new profile");
-                // Create profile in database
-                const { error: insertError } = await supabase
-                  .from('profiles')
-                  .insert({
-                    id: userProfile.id,
-                    name: userProfile.name,
-                    email: userProfile.email,
-                    role: userProfile.role
-                  });
-                
-                if (insertError) {
-                  console.log("Profile creation error (may already exist):", insertError);
-                } else {
-                  console.log("Profile created successfully");
-                }
-              } else {
-                console.log("Profile exists in database");
-                
-                // Try to get full profile data
-                const { data: fullProfile, error: fullError } = await supabase
-                  .from('profiles')
-                  .select('*')
-                  .eq('id', session.user.id)
-                  .maybeSingle();
-                
-                if (fullProfile && !fullError && isMounted) {
-                  console.log("Full profile loaded:", fullProfile);
-                  setUser({
-                    id: fullProfile.id,
-                    name: fullProfile.name,
-                    email: fullProfile.email,
-                    role: fullProfile.role as "admin" | "customer",
-                    phone: fullProfile.phone,
-                    address: fullProfile.address,
-                  });
-                }
-              }
-            } catch (error) {
-              console.log("Profile fetch/create error:", error);
-              // Don't block login for profile errors
-            }
-          }, 500);
-        } else {
-          console.log("No user session, clearing user state");
-          if (isMounted) {
-            setUser(null);
-          }
-        }
-        
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    );
-
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error("Error getting session:", error);
-        }
-        console.log("Initial session:", session?.user?.email);
-        
-        if (isMounted) {
-          setSession(session);
-          if (!session) {
-            setIsLoading(false);
-          }
-        }
-      } catch (error) {
-        console.error("Session check error:", error);
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    getInitialSession();
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    console.log("Login attempt for:", email);
-    
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      console.log("Login response:", { user: data.user?.email, error: error?.message });
-
-      if (error) {
-        console.error('Login error:', error.message);
-        return false;
-      }
-
-      if (data.user) {
-        console.log("Login successful for:", data.user.email);
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Login error:', error);
-      return false;
-    }
-  };
-
-  const signup = async (name: string, email: string, password: string): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: name,
-          },
-          emailRedirectTo: `${window.location.origin}/`,
-        },
-      });
-
-      if (error) {
-        console.error('Signup error:', error.message);
-        return false;
-      }
-
-      return !!data.user;
-    } catch (error) {
-      console.error('Signup error:', error);
-      return false;
-    }
-  };
-
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-  };
-
-  const updateUserProfile = async (updates: Partial<User>) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
-
-      if (!error) {
-        setUser({ ...user, ...updates });
-      }
-    } catch (error) {
-      console.error('Profile update error:', error);
-    }
-  };
-
-  const isAuthenticated = !!session && !!user;
-  const isAdmin = user?.role === "admin";
-
-  console.log("Auth context state:", { 
-    isAuthenticated, 
-    isAdmin, 
-    isLoading, 
-    userEmail: user?.email,
-    sessionExists: !!session 
-  });
-
-  return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        login, 
-        signup, 
-        logout,
-        updateUserProfile,
-        ...petManagement,
-        isAuthenticated, 
-        isAdmin,
-        isLoading
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
+
+  const fetchUserProfile = async (userId: string, userEmail: string) => {
+    try {
+      console.log('Attempting to fetch profile from database');
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching profile:', error);
+        throw error;
+      }
+
+      if (profile) {
+        console.log('Profile exists in database');
+        const userData = {
+          id: profile.id,
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+          address: profile.address,
+          role: profile.role as 'customer' | 'admin'
+        };
+        console.log('Full profile loaded:', userData);
+        setUser(userData);
+      } else {
+        console.log('Profile not found, creating new profile');
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: userId,
+            name: 'User',
+            email: userEmail,
+            role: 'customer'
+          }])
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+          throw insertError;
+        }
+
+        if (newProfile) {
+          const userData = {
+            id: newProfile.id,
+            name: newProfile.name,
+            email: newProfile.email,
+            phone: newProfile.phone,
+            address: newProfile.address,
+            role: newProfile.role as 'customer' | 'admin'
+          };
+          setUser(userData);
+        }
+      }
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
+      const fallbackUser = {
+        id: userId,
+        name: 'User',
+        email: userEmail,
+        role: 'customer' as const
+      };
+      setUser(fallbackUser);
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) throw error;
+    if (data.user) {
+      await fetchUserProfile(data.user.id, data.user.email!);
+    }
+  };
+
+  const signup = async (email: string, password: string, name: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name: name,
+        },
+      },
+    });
+
+    if (error) throw error;
+    if (data.user) {
+      await fetchUserProfile(data.user.id, data.user.email!);
+    }
+  };
+
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    setUser(null);
+    setSession(null);
+  };
+
+  const updateProfile = async (updates: Partial<AuthUser>) => {
+    if (!user) throw new Error('No user logged in');
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', user.id);
+
+    if (error) throw error;
+
+    setUser({ ...user, ...updates });
+  };
+
+  const getUserPets = async (): Promise<Pet[]> => {
+    if (!user) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('pets')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching pets:', error);
+        throw error;
+      }
+
+      return data?.map(pet => ({
+        id: pet.id,
+        name: pet.name,
+        type: pet.type,
+        species: pet.species,
+        breed: pet.breed || undefined,
+        weight: pet.weight || undefined,
+        birthDate: pet.birth_date,
+        gender: pet.gender as 'male' | 'female',
+        ownerId: pet.owner_id
+      })) || [];
+    } catch (error) {
+      console.error('Error in getUserPets:', error);
+      return [];
+    }
+  };
+
+  const addPet = async (petData: Omit<Pet, 'id' | 'ownerId'>): Promise<Pet> => {
+    if (!user) throw new Error('No user logged in');
+
+    const { data, error } = await supabase
+      .from('pets')
+      .insert([{
+        owner_id: user.id,
+        name: petData.name,
+        type: petData.type,
+        species: petData.species,
+        breed: petData.breed || null,
+        weight: petData.weight || null,
+        birth_date: petData.birthDate,
+        gender: petData.gender
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      name: data.name,
+      type: data.type,
+      species: data.species,
+      breed: data.breed || undefined,
+      weight: data.weight || undefined,
+      birthDate: data.birth_date,
+      gender: data.gender as 'male' | 'female',
+      ownerId: data.owner_id
+    };
+  };
+
+  const updatePet = async (id: string, updates: Partial<Pet>) => {
+    if (!user) throw new Error('No user logged in');
+
+    const updateData: any = {};
+    if (updates.name) updateData.name = updates.name;
+    if (updates.type) updateData.type = updates.type;
+    if (updates.species) updateData.species = updates.species;
+    if (updates.breed !== undefined) updateData.breed = updates.breed || null;
+    if (updates.weight !== undefined) updateData.weight = updates.weight || null;
+    if (updates.birthDate) updateData.birth_date = updates.birthDate;
+    if (updates.gender) updateData.gender = updates.gender;
+
+    const { error } = await supabase
+      .from('pets')
+      .update(updateData)
+      .eq('id', id)
+      .eq('owner_id', user.id);
+
+    if (error) throw error;
+  };
+
+  const deletePet = async (id: string) => {
+    if (!user) throw new Error('No user logged in');
+
+    const { error } = await supabase
+      .from('pets')
+      .delete()
+      .eq('id', id)
+      .eq('owner_id', user.id);
+
+    if (error) throw error;
+  };
+
+  const getUserAppointments = async () => {
+    try {
+      return await getUserAppointmentsFromSupabase();
+    } catch (error) {
+      console.error('Error fetching user appointments:', error);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        
+        if (initialSession?.user) {
+          console.log('Auth state change: SIGNED_IN', initialSession.user.email);
+          console.log('User session found, creating user profile');
+          
+          const tempUser = {
+            id: initialSession.user.id,
+            name: initialSession.user.user_metadata?.name || 'customer',
+            email: initialSession.user.email!,
+            role: 'customer' as const
+          };
+          
+          console.log('Setting user profile:', tempUser);
+          setUser(tempUser);
+          setSession(initialSession);
+          
+          const authState = {
+            isAuthenticated: true,
+            isAdmin: tempUser.role === 'admin',
+            isLoading: false,
+            userEmail: tempUser.email,
+            sessionExists: true
+          };
+          console.log('Auth context state:', authState);
+          
+          await fetchUserProfile(initialSession.user.id, initialSession.user.email!);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.email);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('User session found, creating user profile');
+        
+        const tempUser = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || 'customer',
+          email: session.user.email!,
+          role: 'customer' as const
+        };
+        
+        console.log('Setting user profile:', tempUser);
+        setUser(tempUser);
+        setSession(session);
+        
+        const authState = {
+          isAuthenticated: true,
+          isAdmin: tempUser.role === 'admin',
+          isLoading: false,
+          userEmail: tempUser.email,
+          sessionExists: true
+        };
+        console.log('Auth context state:', authState);
+        
+        await fetchUserProfile(session.user.id, session.user.email!);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSession(null);
+      }
+      
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const value = {
+    user,
+    isAuthenticated: !!user,
+    isAdmin: user?.role === 'admin',
+    isLoading,
+    login,
+    signup,
+    logout,
+    updateProfile,
+    getUserPets,
+    addPet,
+    updatePet,
+    deletePet,
+    getUserAppointments,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

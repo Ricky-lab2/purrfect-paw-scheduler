@@ -9,12 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CalendarDays, Clock, PawPrint, Stethoscope } from "lucide-react";
-import { saveAppointment } from "@/utils/localStorageDB";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotification } from "@/contexts/NotificationContext";
 import { AppointmentSuccessDialog } from "@/components/AppointmentSuccessDialog";
 import { AppointmentConfirmDialog } from "@/components/AppointmentConfirmDialog";
+import { saveAppointmentToSupabase } from "@/utils/supabaseAppointments";
 
 const formSchema = z.object({
   petName: z.string().min(1, "Pet name is required"),
@@ -84,7 +84,7 @@ export function AppointmentForm() {
         setPetsLoading(true);
         try {
           const pets = await getUserPets();
-          console.log("Loaded pets:", pets); // Debug log
+          console.log("Loaded pets:", pets);
           setUserPets(pets || []);
         } catch (error) {
           console.error("Error loading user pets:", error);
@@ -94,7 +94,6 @@ export function AppointmentForm() {
         }
       }
     };
-
     loadPets();
   }, [user, getUserPets]);
 
@@ -108,7 +107,6 @@ export function AppointmentForm() {
     setShowOtherSpecies(watchedSpecies === "other");
     setShowBreed(watchedSpecies === "dog" || watchedSpecies === "cat");
     
-    // Clear fields when species changes
     if (watchedSpecies !== "reptile") {
       form.setValue("reptileType", "");
       form.setValue("reptileTypeOther", "");
@@ -242,7 +240,9 @@ export function AppointmentForm() {
     if (!pendingAppointmentData) return;
 
     try {
-      const savedAppointment = await saveAppointment(pendingAppointmentData);
+      console.log('Attempting to save appointment to Supabase...');
+      const savedAppointment = await saveAppointmentToSupabase(pendingAppointmentData);
+      console.log('Appointment saved successfully:', savedAppointment);
       
       // Set appointment details for the success dialog
       setAppointmentDetails({
@@ -272,6 +272,11 @@ export function AppointmentForm() {
       
       form.reset();
       setPendingAppointmentData(null);
+      
+      toast({
+        title: "Appointment Booked Successfully!",
+        description: "Your appointment has been saved to the database.",
+      });
     } catch (error) {
       console.error("Error saving appointment:", error);
       toast({
