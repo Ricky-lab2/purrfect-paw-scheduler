@@ -1,9 +1,10 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, memo } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FloatingChatbot } from "@/components/FloatingChatbot";
@@ -38,8 +39,18 @@ const AdminUsers = lazy(() => import("./pages/admin/Users"));
 const BookingRecords = lazy(() => import("./pages/admin/BookingRecords"));
 const SignupsPage = lazy(() => import("./pages/admin/Signups"));
 
+// Improved loading component
+const LoadingSpinner = memo(() => (
+  <div className="flex items-center justify-center h-screen">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pet-blue-dark"></div>
+      <p className="text-sm text-muted-foreground">Loading...</p>
+    </div>
+  </div>
+));
+
 // Redirect component based on auth status
-const AuthRedirect = () => {
+const AuthRedirect = memo(() => {
   const { isAuthenticated, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,12 +69,22 @@ const AuthRedirect = () => {
   }, [isAuthenticated, isAdmin, navigate, location.pathname, isLoading]);
 
   return null;
-};
+});
 
-const queryClient = new QueryClient();
+// Optimized query client with better defaults
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Notification wrapper component
-function NotificationWrapper() {
+const NotificationWrapper = memo(() => {
   const { currentNotification, isVisible, hideNotification } = useNotification();
   
   return (
@@ -73,7 +94,7 @@ function NotificationWrapper() {
       onClose={hideNotification}
     />
   );
-}
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -88,11 +109,7 @@ const App = () => (
               <div className="min-h-screen flex flex-col">
                 <Navbar />
                 <main className="flex-grow">
-                  <Suspense fallback={
-                    <div className="flex items-center justify-center h-screen">
-                      <div className="animate-pulse">Loading...</div>
-                    </div>
-                  }>
+                  <Suspense fallback={<LoadingSpinner />}>
                     <Routes>
                       {/* Public Routes */}
                       <Route path="/" element={<Index />} />

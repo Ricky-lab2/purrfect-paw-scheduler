@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useCallback } from "react";
 import { AppointmentForm } from "@/components/AppointmentForm";
 import { DoctorCommunication } from "@/components/DoctorCommunication";
 import { FAQSection } from "@/components/FAQSection";
@@ -8,42 +8,54 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Navigate } from "react-router-dom";
 
-const Appointment = () => {
-  const [userEmail, setUserEmail] = useState("");
+// Memoized components for better performance
+const AppointmentCard = memo(({ apt, getSpeciesIcon, getStatusColor }: {
+  apt: AppointmentType;
+  getSpeciesIcon: (species: string | undefined) => string;
+  getStatusColor: (status: string) => string;
+}) => (
+  <div key={apt.id} className="p-3 border rounded-lg">
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="font-medium">
+          {apt.petName} {getSpeciesIcon(apt.petSpecies)} - {apt.service}
+        </p>
+        <p className="text-xs text-gray-500">
+          {new Date(apt.date).toLocaleDateString()} at {apt.time || apt.timeSlot}
+        </p>
+        {apt.diagnosis && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Reason: {apt.diagnosis}
+          </p>
+        )}
+      </div>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(apt.status)}`}>
+        {apt.status}
+      </span>
+    </div>
+  </div>
+));
+
+const ServiceCard = memo(({ title, description, gradient }: {
+  title: string;
+  description: string;
+  gradient: string;
+}) => (
+  <div className={`p-3 border rounded-lg ${gradient}`}>
+    <h4 className="font-medium">{title}</h4>
+    <p className="text-sm text-gray-600 mt-1">{description}</p>
+  </div>
+));
+
+const Appointment = memo(() => {
   const [userAppointments, setUserAppointments] = useState<AppointmentType[]>([]);
   const [isChecking, setIsChecking] = useState(false);
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   
-  // Automatically set the email from the authenticated user
-  useEffect(() => {
-    if (isAuthenticated && user?.email) {
-      setUserEmail(user.email);
-      checkAppointments(user.email);
-    }
-  }, [isAuthenticated, user]);
-  
-  const checkAppointments = (email: string = userEmail) => {
-    if (!email) return;
-    
-    setIsChecking(true);
-    try {
-      const appointments = getAppointments().filter(
-        apt => apt.email.toLowerCase() === email.toLowerCase()
-      );
-      setUserAppointments(appointments);
-    } catch (error) {
-      console.error("Error fetching appointments:", error);
-    } finally {
-      setIsChecking(false);
-    }
-  };
-  
-  // Get species icon based on pet type
-  const getSpeciesIcon = (species: string | undefined) => {
-    if (!species) {
-      return "🐾";
-    }
+  // Memoized functions to prevent recreating on every render
+  const getSpeciesIcon = useCallback((species: string | undefined) => {
+    if (!species) return "🐾";
     
     if (species.startsWith("reptile:")) {
       const reptileType = species.substring(8);
@@ -57,9 +69,7 @@ const Appointment = () => {
       }
     }
     
-    if (species.startsWith("other:")) {
-      return "🐾";
-    }
+    if (species.startsWith("other:")) return "🐾";
     
     switch(species) {
       case "dog": return "🐕";
@@ -71,9 +81,9 @@ const Appointment = () => {
       case "reptile": return "🦎";
       default: return "🐾";
     }
-  };
+  }, []);
   
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case "Confirmed": return "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300";
       case "Completed": return "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300";
@@ -81,19 +91,30 @@ const Appointment = () => {
       case "Cancelled": return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300";
       default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
     }
-  };
+  }, []);
   
-  // Format pet species for display
-  const formatPetSpecies = (species: string) => {
-    if (species.startsWith("reptile:")) {
-      const reptileType = species.substring(8);
-      return `${reptileType.charAt(0).toUpperCase() + reptileType.slice(1)} (Reptile)`;
+  const checkAppointments = useCallback((email: string) => {
+    if (!email) return;
+    
+    setIsChecking(true);
+    try {
+      const appointments = getAppointments().filter(
+        apt => apt.email.toLowerCase() === email.toLowerCase()
+      );
+      setUserAppointments(appointments);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    } finally {
+      setIsChecking(false);
     }
-    if (species.startsWith("other:")) {
-      return species.substring(7);
+  }, []);
+  
+  // Automatically set the email from the authenticated user
+  useEffect(() => {
+    if (isAuthenticated && user?.email) {
+      checkAppointments(user.email);
     }
-    return species;
-  };
+  }, [isAuthenticated, user?.email, checkAppointments]);
   
   // Redirect to login if user is not authenticated
   if (!isAuthenticated) {
@@ -138,26 +159,12 @@ const Appointment = () => {
                 {userAppointments.length > 0 ? (
                   <div className="space-y-3">
                     {userAppointments.slice(0, 3).map((apt) => (
-                      <div key={apt.id} className="p-3 border rounded-lg">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">
-                              {apt.petName} {getSpeciesIcon(apt.petSpecies)} - {apt.service}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {new Date(apt.date).toLocaleDateString()} at {apt.time || apt.timeSlot}
-                            </p>
-                            {apt.diagnosis && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Reason: {apt.diagnosis}
-                              </p>
-                            )}
-                          </div>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(apt.status)}`}>
-                            {apt.status}
-                          </span>
-                        </div>
-                      </div>
+                      <AppointmentCard 
+                        key={apt.id}
+                        apt={apt}
+                        getSpeciesIcon={getSpeciesIcon}
+                        getStatusColor={getStatusColor}
+                      />
                     ))}
                     
                     {userAppointments.length > 3 && (
@@ -186,20 +193,23 @@ const Appointment = () => {
                 </p>
                 
                 <div className="space-y-4">
-                  <div className="p-3 border rounded-lg bg-gradient-to-r from-blue-50 to-blue-100">
-                    <h4 className="font-medium">Pet Grooming Packages</h4>
-                    <p className="text-sm text-gray-600 mt-1">Complete grooming services starting from ₱2,000</p>
-                  </div>
+                  <ServiceCard 
+                    title="Pet Grooming Packages"
+                    description="Complete grooming services starting from ₱2,000"
+                    gradient="bg-gradient-to-r from-blue-50 to-blue-100"
+                  />
                   
-                  <div className="p-3 border rounded-lg bg-gradient-to-r from-green-50 to-green-100">
-                    <h4 className="font-medium">Pet Dental Care</h4>
-                    <p className="text-sm text-gray-600 mt-1">Professional teeth cleaning and oral care from ₱1,500</p>
-                  </div>
+                  <ServiceCard 
+                    title="Pet Dental Care"
+                    description="Professional teeth cleaning and oral care from ₱1,500"
+                    gradient="bg-gradient-to-r from-green-50 to-green-100"
+                  />
                   
-                  <div className="p-3 border rounded-lg bg-gradient-to-r from-purple-50 to-purple-100">
-                    <h4 className="font-medium">Pet Boarding</h4>
-                    <p className="text-sm text-gray-600 mt-1">Safe and comfortable boarding facilities from ₱800/night</p>
-                  </div>
+                  <ServiceCard 
+                    title="Pet Boarding"
+                    description="Safe and comfortable boarding facilities from ₱800/night"
+                    gradient="bg-gradient-to-r from-purple-50 to-purple-100"
+                  />
                 </div>
                 
                 <div className="mt-4 text-center">
@@ -284,6 +294,8 @@ const Appointment = () => {
       </section>
     </div>
   );
-};
+});
+
+Appointment.displayName = 'Appointment';
 
 export default Appointment;
