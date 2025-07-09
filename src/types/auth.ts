@@ -11,7 +11,7 @@ export type User = {
 export type Pet = {
   id: string;
   name: string;
-  type: "dog" | "cat" | "bird" | "rabbit" | "hamster" | "fish" | "reptile" | "other";
+  type: string;
   species: string;
   breed?: string;
   weight?: string;

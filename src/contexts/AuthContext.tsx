@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profile) {
         console.log('Profile exists in database');
-        const userData = {
+        const userData: AuthUser = {
           id: profile.id,
           name: profile.name,
           email: profile.email,
@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (newProfile) {
-          const userData = {
+          const userData: AuthUser = {
             id: newProfile.id,
             name: newProfile.name,
             email: newProfile.email,
@@ -116,11 +116,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
-      const fallbackUser = {
+      const fallbackUser: AuthUser = {
         id: userId,
         name: 'User',
         email: userEmail,
-        role: 'customer' as const
+        role: 'customer'
       };
       setUser(fallbackUser);
     }
@@ -329,11 +329,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('Auth state change: SIGNED_IN', initialSession.user.email);
           console.log('User session found, creating user profile');
           
-          const tempUser = {
+          const tempUser: AuthUser = {
             id: initialSession.user.id,
             name: initialSession.user.user_metadata?.name || 'customer',
             email: initialSession.user.email!,
-            role: 'customer' as const
+            role: 'customer'
           };
           
           console.log('Setting user profile:', tempUser);
@@ -366,11 +366,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (event === 'SIGNED_IN' && session?.user) {
         console.log('User session found, creating user profile');
         
-        const tempUser = {
+        const tempUser: AuthUser = {
           id: session.user.id,
           name: session.user.user_metadata?.name || 'customer',
           email: session.user.email!,
-          role: 'customer' as const
+          role: 'customer'
         };
         
         console.log('Setting user profile:', tempUser);
