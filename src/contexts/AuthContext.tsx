@@ -61,33 +61,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
-      setIsLoading(true);
+      console.log('Starting login process for:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      console.log('Login response:', { data, error });
+
+      if (error) {
+        console.error('Login error:', error);
+        toast({
+          title: "Login failed",
+          description: error.message || "Please check your credentials and try again.",
+          variant: "destructive",
+        });
+        return false;
+      }
 
       if (data.user) {
-        await fetchUserProfile(data.user);
-        toast({
-          title: "Welcome back!",
-          description: "You have successfully logged in.",
-        });
+        console.log('Login successful, user:', data.user);
+        // Don't call fetchUserProfile here as it will be handled by onAuthStateChange
         return true;
       }
+      
       return false;
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('Login catch error:', error);
       toast({
         title: "Login failed",
-        description: error.message || "Please check your credentials and try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
       return false;
-    } finally {
-      setIsLoading(false);
     }
   }, [toast]);
 
@@ -108,7 +115,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error) throw error;
 
       if (data.user) {
-        await fetchUserProfile(data.user);
         toast({
           title: "Signup successful!",
           description: "You have successfully signed up. Welcome!",
@@ -331,7 +337,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchUserProfile = useCallback(async (authUser: User) => {
     try {
-      // First try to get the profile, handle the case where it doesn't exist
+      console.log('Fetching profile for user:', authUser.id);
+      
+      // First try to get the profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -340,8 +348,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Error fetching profile:', profileError);
-        // Continue with minimal user data if profile fetch fails
       }
+
+      console.log('Profile data:', profile);
 
       // Fetch pets
       const { data: pets, error: petsError } = await supabase
@@ -382,7 +391,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         appointments: appointments || []
       };
 
-      console.log('User profile loaded:', userData);
+      console.log('Setting user data:', userData);
       setUser(userData);
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
@@ -415,7 +424,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const initializeAuth = async () => {
       try {
+        console.log('Initializing auth...');
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('Initial session:', session);
         
         if (session?.user && mounted) {
           await fetchUserProfile(session.user);
@@ -433,6 +444,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
         if (!mounted) return;
 
         if (event === 'SIGNED_IN' && session?.user) {
