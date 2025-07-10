@@ -26,14 +26,6 @@ export function Navbar() {
   // Check if we're on an admin route
   const isAdminRoute = location.pathname.startsWith('/admin');
 
-  // Debug logging
-  useEffect(() => {
-    console.log('Current user:', user);
-    console.log('Is authenticated:', isAuthenticated);
-    console.log('Is admin:', isAdmin);
-    console.log('Current route:', location.pathname);
-  }, [user, isAuthenticated, isAdmin, location.pathname]);
-
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -42,13 +34,7 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Generate real-time notifications based on user data
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      setNotifications([]);
-      return;
-    }
-
     const generateNotifications = async () => {
       const newNotifications: Notification[] = [];
       const now = new Date();
@@ -213,13 +199,6 @@ export function Navbar() {
 
           {isAuthenticated ? (
             <>
-              {/* Debug info - temporary */}
-              {user && (
-                <div className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs">
-                  Role: {user.role} | Admin: {isAdmin ? 'Yes' : 'No'}
-                </div>
-              )}
-
               {/* Notifications */}
               <Popover>
                 <PopoverTrigger asChild>
