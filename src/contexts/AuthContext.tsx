@@ -191,11 +191,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { data, error } = await supabase
         .from('pets')
         .insert([{ 
-          ...petData, 
-          owner_id: user.id,
-          birth_date: petData.birthDate,
+          name: petData.name,
+          type: petData.type,
+          species: petData.species,
           breed: petData.breed || '',
-          weight: petData.weight || ''
+          weight: petData.weight || '',
+          gender: petData.gender,
+          birth_date: petData.birthDate,
+          owner_id: user.id
         }])
         .select()
         .single();
@@ -328,17 +331,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchUserProfile = useCallback(async (authUser: User) => {
     try {
+      // First try to get the profile, handle the case where it doesn't exist
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
-        .single();
+        .maybeSingle();
 
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Error fetching profile:', profileError);
-        return;
+        // Continue with minimal user data if profile fetch fails
       }
 
+      // Fetch pets
       const { data: pets, error: petsError } = await supabase
         .from('pets')
         .select('*')
@@ -348,7 +353,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.error('Error fetching pets:', petsError);
       }
 
-      const appointments = await getUserAppointmentsFromSupabase();
+      // Fetch appointments
+      let appointments = [];
+      try {
+        appointments = await getUserAppointmentsFromSupabase();
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
+      }
 
       const userData: AuthUser = {
         id: authUser.id,
@@ -371,9 +382,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         appointments: appointments || []
       };
 
+      console.log('User profile loaded:', userData);
       setUser(userData);
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
+      // Set minimal user data even if profile fetch fails
+      const userData: AuthUser = {
+        id: authUser.id,
+        email: authUser.email || '',
+        name: authUser.user_metadata?.name || 'User',
+        role: 'customer',
+        phone: '',
+        address: '',
+        pets: [],
+        appointments: []
+      };
+      setUser(userData);
     }
   }, []);
 
