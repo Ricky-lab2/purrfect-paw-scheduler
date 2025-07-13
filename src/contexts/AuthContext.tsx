@@ -348,28 +348,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Error fetching profile:', profileError);
+        // Set minimal user data with default role if profile fetch fails
+        const userData: AuthUser = {
+          id: authUser.id,
+          email: authUser.email || '',
+          name: authUser.user_metadata?.name || 'User',
+          role: 'customer',
+          phone: '',
+          address: '',
+          pets: [],
+          appointments: []
+        };
+        setUser(userData);
+        return;
       }
 
       console.log('Profile data:', profile);
 
-      // Fetch pets
-      const { data: pets, error: petsError } = await supabase
-        .from('pets')
-        .select('*')
-        .eq('owner_id', authUser.id);
-
-      if (petsError) {
-        console.error('Error fetching pets:', petsError);
-      }
-
-      // Fetch appointments
-      let appointments = [];
-      try {
-        appointments = await getUserAppointmentsFromSupabase();
-      } catch (error) {
-        console.error('Error fetching appointments:', error);
-      }
-
+      // For performance, only fetch pets and appointments after setting basic user data
       const userData: AuthUser = {
         id: authUser.id,
         email: authUser.email || '',
@@ -377,22 +373,57 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         role: (profile?.role as 'customer' | 'admin') || 'customer',
         phone: profile?.phone || '',
         address: profile?.address || '',
-        pets: pets?.map(pet => ({
-          id: pet.id,
-          name: pet.name,
-          type: pet.type,
-          species: pet.species,
-          breed: pet.breed || '',
-          weight: pet.weight || '',
-          gender: pet.gender as "male" | "female",
-          birthDate: pet.birth_date,
-          ownerId: pet.owner_id
-        })) || [],
-        appointments: appointments || []
+        pets: [],
+        appointments: []
       };
 
       console.log('Setting user data:', userData);
       setUser(userData);
+
+      // Fetch additional data in the background for better performance
+      setTimeout(async () => {
+        try {
+          // Fetch pets
+          const { data: pets, error: petsError } = await supabase
+            .from('pets')
+            .select('*')
+            .eq('owner_id', authUser.id);
+
+          if (petsError) {
+            console.error('Error fetching pets:', petsError);
+          }
+
+          // Fetch appointments
+          let appointments = [];
+          try {
+            appointments = await getUserAppointmentsFromSupabase();
+          } catch (error) {
+            console.error('Error fetching appointments:', error);
+          }
+
+          // Update user with additional data
+          setUser(prevUser => {
+            if (!prevUser) return prevUser;
+            return {
+              ...prevUser,
+              pets: pets?.map(pet => ({
+                id: pet.id,
+                name: pet.name,
+                type: pet.type,
+                species: pet.species,
+                breed: pet.breed || '',
+                weight: pet.weight || '',
+                gender: pet.gender as "male" | "female",
+                birthDate: pet.birth_date,
+                ownerId: pet.owner_id
+              })) || [],
+              appointments: appointments || []
+            };
+          });
+        } catch (error) {
+          console.error('Error fetching additional user data:', error);
+        }
+      }, 100);
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
       // Set minimal user data even if profile fetch fails
@@ -425,41 +456,53 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initializeAuth = async () => {
       try {
         console.log('Initializing auth...');
+        
+        // Set up auth listener first for better responsiveness
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            console.log('Auth state change:', event, session?.user?.email);
+            if (!mounted) return;
+
+            if (event === 'SIGNED_IN' && session?.user) {
+              setIsLoading(true);
+              await fetchUserProfile(session.user);
+              setIsLoading(false);
+            } else if (event === 'SIGNED_OUT') {
+              setUser(null);
+              setIsLoading(false);
+            }
+          }
+        );
+
+        // Then check for existing session
         const { data: { session } } = await supabase.auth.getSession();
         console.log('Initial session:', session);
         
         if (session?.user && mounted) {
           await fetchUserProfile(session.user);
         }
+        
+        // Store subscription for cleanup
+        if (mounted) {
+          setIsLoading(false);
+        }
+
+        return () => {
+          subscription.unsubscribe();
+        };
       } catch (error) {
         console.error('Error initializing auth:', error);
-      } finally {
         if (mounted) {
           setIsLoading(false);
         }
       }
     };
 
-    initializeAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
-        if (!mounted) return;
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          await fetchUserProfile(session.user);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-        }
-        
-        setIsLoading(false);
-      }
-    );
+    const cleanup = initializeAuth();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      cleanup.then(cleanupFn => cleanupFn?.());
     };
   }, [fetchUserProfile]);
 

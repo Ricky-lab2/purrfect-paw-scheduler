@@ -109,12 +109,17 @@ const Login = () => {
               Sign up
             </Link>
           </div>
-          <p className="text-center text-sm text-muted-foreground mt-4">
-            Demo Accounts:
-          </p>
-          <div className="text-xs text-muted-foreground mt-1 space-y-1">
-            <p>Admin: admin@example.com / admin123</p>
-            <p>Customer: customer@example.com / customer123</p>
+          <div className="mt-4 p-3 bg-muted rounded-lg">
+            <p className="text-center text-sm font-medium text-muted-foreground mb-2">
+              Demo Accounts:
+            </p>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p><span className="font-medium">Admin:</span> admin@example.com / admin123</p>
+              <p><span className="font-medium">Customer:</span> customer@example.com / customer123</p>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Admin users get access to the dashboard at <code className="bg-background px-1 rounded">/admin</code>
+            </p>
           </div>
         </CardFooter>
       </Card>
