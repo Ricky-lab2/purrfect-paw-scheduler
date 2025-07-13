@@ -21,25 +21,20 @@ const Login = () => {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted, attempting login");
     setIsLoading(true);
     
     try {
-      console.log("Calling login function");
       const success = await login(email, password);
-      console.log("Login result:", success);
       
       if (success) {
-        console.log("Login successful, showing toast and navigating");
         toast({
           title: "Login successful",
           description: "Welcome back!",
         });
         navigate("/");
       } else {
-        console.log("Login failed");
         toast({
-          title: "Login failed",
+          title: "Login failed", 
           description: "Invalid email or password. Please try again.",
           variant: "destructive",
         });
@@ -52,7 +47,6 @@ const Login = () => {
         variant: "destructive",
       });
     } finally {
-      console.log("Setting loading to false");
       setIsLoading(false);
     }
   };
