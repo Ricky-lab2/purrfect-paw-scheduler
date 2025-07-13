@@ -16,7 +16,7 @@ export function AdminSidebar() {
   const { logout } = useAuth();
 
   const navItems = [
-    { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+    { name: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true },
     { name: "Appointments", href: "/admin/appointments", icon: Calendar },
     { name: "Booking Records", href: "/admin/booking-records", icon: FileText },
     { name: "Pets", href: "/admin/pets", icon: PawPrint },
@@ -41,6 +41,7 @@ export function AdminSidebar() {
           <NavLink
             key={item.name}
             to={item.href}
+            end={item.exact}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
                 isActive

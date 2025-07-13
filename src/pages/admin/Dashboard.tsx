@@ -38,7 +38,10 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back! Here's what's happening with your pet care business.</p>
+        </div>
         <div className="flex items-center gap-2">
           <select className="px-3 py-2 border rounded-md text-sm">
             <option value="thisMonth">This Month</option>
