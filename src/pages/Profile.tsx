@@ -161,6 +161,11 @@ const Profile = () => {
           <Button variant="outline" asChild className="flex-1">
             <Link to="/my-appointments">View Appointments</Link>
           </Button>
+          {user?.role === "admin" && (
+            <Button variant="outline" asChild className="flex-1">
+              <Link to="/admin">Admin Dashboard</Link>
+            </Button>
+          )}
         </div>
       </div>
     </div>
