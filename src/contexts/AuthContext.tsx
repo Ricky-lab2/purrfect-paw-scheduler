@@ -464,9 +464,59 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (!mounted) return;
 
             if (event === 'SIGNED_IN' && session?.user) {
-              setIsLoading(true);
-              await fetchUserProfile(session.user);
+              // Set basic user data immediately for fast login
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+              const userData: AuthUser = {
+                id: session.user.id,
+                email: session.user.email || '',
+                name: profile?.name || session.user.user_metadata?.name || 'User',
+                phone: profile?.phone || '',
+                address: profile?.address || '',
+                role: (profile?.role as 'customer' | 'admin') || 'customer',
+                pets: [],
+                appointments: []
+              };
+
+              setUser(userData);
               setIsLoading(false);
+
+              // Fetch pets and appointments in background
+              setTimeout(async () => {
+                try {
+                  const { data: pets } = await supabase
+                    .from('pets')
+                    .select('*')
+                    .eq('owner_id', session.user.id);
+
+                  const appointments = await getUserAppointmentsFromSupabase();
+
+                  setUser(prevUser => {
+                    if (!prevUser) return prevUser;
+                    return {
+                      ...prevUser,
+                      pets: pets?.map(pet => ({
+                        id: pet.id,
+                        name: pet.name,
+                        type: pet.type,
+                        species: pet.species,
+                        breed: pet.breed || '',
+                        weight: pet.weight || '',
+                        gender: pet.gender as "male" | "female",
+                        birthDate: pet.birth_date,
+                        ownerId: pet.owner_id
+                      })) || [],
+                      appointments: appointments || []
+                    };
+                  });
+                } catch (error) {
+                  console.error('Error fetching background data:', error);
+                }
+              }, 0);
             } else if (event === 'SIGNED_OUT') {
               setUser(null);
               setIsLoading(false);
