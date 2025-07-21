@@ -23,6 +23,11 @@ export function Navbar() {
   const location = useLocation();
   const { user, isAuthenticated, isAdmin, logout, getUserAppointments, getUserPets } = useAuth();
   
+  // Debug admin status
+  console.log('Navbar - user:', user);
+  console.log('Navbar - isAdmin:', isAdmin);
+  console.log('Navbar - user role:', user?.role);
+  
   // Check if we're on an admin route
   const isAdminRoute = location.pathname.startsWith('/admin');
 
