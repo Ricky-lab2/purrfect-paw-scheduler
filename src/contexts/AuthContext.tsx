@@ -337,8 +337,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchUserProfile = useCallback(async (authUser: User) => {
     try {
-      console.log('Fetching profile for user:', authUser.id);
-      
       // First try to get the profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -363,8 +361,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      console.log('Profile data:', profile);
-
       // For performance, only fetch pets and appointments after setting basic user data
       const userData: AuthUser = {
         id: authUser.id,
@@ -377,7 +373,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         appointments: []
       };
 
-      console.log('Setting user data:', userData);
       setUser(userData);
 
       // Fetch additional data in the background for better performance
