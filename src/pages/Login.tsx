@@ -31,7 +31,7 @@ const Login = () => {
           title: "Login successful",
           description: "Welcome back!",
         });
-        navigate("/");
+        // Let AuthRedirect component handle navigation
       } else {
         toast({
           title: "Login failed", 
