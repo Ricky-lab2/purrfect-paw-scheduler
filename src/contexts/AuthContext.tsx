@@ -460,25 +460,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             if (event === 'SIGNED_IN' && session?.user) {
               // Set basic user data immediately for fast login
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
+              try {
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .eq('id', session.user.id)
+                  .single();
 
-              const userData: AuthUser = {
-                id: session.user.id,
-                email: session.user.email || '',
-                name: profile?.name || session.user.user_metadata?.name || 'User',
-                phone: profile?.phone || '',
-                address: profile?.address || '',
-                role: (profile?.role as 'customer' | 'admin') || 'customer',
-                pets: [],
-                appointments: []
-              };
+                const userData: AuthUser = {
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  name: profile?.name || session.user.user_metadata?.name || 'User',
+                  phone: profile?.phone || '',
+                  address: profile?.address || '',
+                  role: (profile?.role as 'customer' | 'admin') || (session.user.role as 'customer' | 'admin') || 'customer',
+                  pets: [],
+                  appointments: []
+                };
 
-              setUser(userData);
-              setIsLoading(false);
+                console.log('Setting user data:', userData);
+                setUser(userData);
+                setIsLoading(false);
 
               // Fetch pets and appointments in background
               setTimeout(async () => {
@@ -512,6 +514,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   console.error('Error fetching background data:', error);
                 }
               }, 0);
+              } catch (error) {
+                console.error('Error fetching profile in auth state change:', error);
+                // Set minimal user data if profile fetch fails
+                const userData: AuthUser = {
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  name: session.user.user_metadata?.name || 'User',
+                  role: (session.user.role as 'customer' | 'admin') || 'customer',
+                  phone: '',
+                  address: '',
+                  pets: [],
+                  appointments: []
+                };
+                console.log('Setting fallback user data:', userData);
+                setUser(userData);
+                setIsLoading(false);
+              }
             } else if (event === 'SIGNED_OUT') {
               setUser(null);
               setIsLoading(false);
