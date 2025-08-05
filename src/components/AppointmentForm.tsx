@@ -15,6 +15,7 @@ import { useNotification } from "@/contexts/NotificationContext";
 import { AppointmentSuccessDialog } from "@/components/AppointmentSuccessDialog";
 import { AppointmentConfirmDialog } from "@/components/AppointmentConfirmDialog";
 import { saveAppointmentToSupabase } from "@/utils/supabaseAppointments";
+import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   petName: z.string().min(1, "Pet name is required"),
@@ -244,6 +245,39 @@ export function AppointmentForm() {
       const savedAppointment = await saveAppointmentToSupabase(pendingAppointmentData);
       console.log('Appointment saved successfully:', savedAppointment);
       
+      // Send confirmation email
+      try {
+        console.log('Sending appointment confirmation email...');
+        const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-appointment-email', {
+          body: {
+            ownerName: pendingAppointmentData.ownerName,
+            email: pendingAppointmentData.email,
+            petName: pendingAppointmentData.petName,
+            service: pendingAppointmentData.service,
+            date: pendingAppointmentData.date,
+            timeSlot: pendingAppointmentData.timeSlot,
+            diagnosis: pendingAppointmentData.diagnosis,
+          }
+        });
+
+        if (emailError) {
+          throw new Error(emailError.message || 'Failed to send email');
+        }
+        console.log('Email sent successfully:', emailResult);
+        
+        toast({
+          title: "Appointment Booked Successfully!",
+          description: "Confirmation email has been sent to your email address.",
+        });
+      } catch (emailError) {
+        console.error('Error sending email:', emailError);
+        toast({
+          title: "Appointment Booked",
+          description: "Appointment saved but email notification failed. Please check your appointment in your profile.",
+          variant: "default",
+        });
+      }
+      
       // Set appointment details for the success dialog
       setAppointmentDetails({
         petName: pendingAppointmentData.petName,
@@ -273,10 +307,6 @@ export function AppointmentForm() {
       form.reset();
       setPendingAppointmentData(null);
       
-      toast({
-        title: "Appointment Booked Successfully!",
-        description: "Your appointment has been saved to the database.",
-      });
     } catch (error) {
       console.error("Error saving appointment:", error);
       toast({
