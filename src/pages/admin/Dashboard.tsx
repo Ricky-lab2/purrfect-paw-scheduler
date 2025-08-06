@@ -61,39 +61,19 @@ const Dashboard = () => {
       const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-      // Fetch current month stats
+      // Fetch ALL data first, then filter for stats
       const [
-        currentAppointments,
-        currentPets,
-        currentClients,
-        lastMonthAppointments,
-        lastMonthPets,
-        lastMonthClients,
-        appointmentsByStatusData,
-        appointmentsByServiceData,
+        allAppointments,
+        allPets,
+        allProfiles,
         recentAppointmentsData,
         recentProfilesData,
         recentPetsData
       ] = await Promise.all([
-        // Current month data
-        supabase.from('appointments').select('*').gte('created_at', currentMonthStart.toISOString()),
-        supabase.from('pets').select('*').gte('created_at', currentMonthStart.toISOString()),
-        supabase.from('profiles').select('*').gte('created_at', currentMonthStart.toISOString()),
-        
-        // Last month data for comparison
-        supabase.from('appointments').select('*')
-          .gte('created_at', lastMonthStart.toISOString())
-          .lte('created_at', lastMonthEnd.toISOString()),
-        supabase.from('pets').select('*')
-          .gte('created_at', lastMonthStart.toISOString())
-          .lte('created_at', lastMonthEnd.toISOString()),
-        supabase.from('profiles').select('*')
-          .gte('created_at', lastMonthStart.toISOString())
-          .lte('created_at', lastMonthEnd.toISOString()),
-        
-        // Additional analytics - get ALL appointments for charts
-        supabase.from('appointments').select('status'),
-        supabase.from('appointments').select('service'),
+        // Get ALL data
+        supabase.from('appointments').select('*'),
+        supabase.from('pets').select('*'),
+        supabase.from('profiles').select('*'),
         
         // Recent activity data
         supabase.from('appointments').select('*').order('created_at', { ascending: false }).limit(10),
@@ -101,30 +81,58 @@ const Dashboard = () => {
         supabase.from('pets').select('*').order('created_at', { ascending: false }).limit(5)
       ]);
 
+      // Filter data by date ranges for stats
+      const currentAppointments = allAppointments.data?.filter(apt => 
+        new Date(apt.created_at) >= currentMonthStart
+      ) || [];
+      
+      const currentPets = allPets.data?.filter(pet => 
+        new Date(pet.created_at) >= currentMonthStart
+      ) || [];
+      
+      const currentClients = allProfiles.data?.filter(profile => 
+        new Date(profile.created_at) >= currentMonthStart
+      ) || [];
+
+      const lastMonthAppointments = allAppointments.data?.filter(apt => {
+        const aptDate = new Date(apt.created_at);
+        return aptDate >= lastMonthStart && aptDate <= lastMonthEnd;
+      }) || [];
+      
+      const lastMonthPets = allPets.data?.filter(pet => {
+        const petDate = new Date(pet.created_at);
+        return petDate >= lastMonthStart && petDate <= lastMonthEnd;
+      }) || [];
+      
+      const lastMonthClients = allProfiles.data?.filter(profile => {
+        const profileDate = new Date(profile.created_at);
+        return profileDate >= lastMonthStart && profileDate <= lastMonthEnd;
+      }) || [];
+
       // Calculate changes
-      const appointmentsChange = lastMonthAppointments.data?.length 
-        ? Math.round(((currentAppointments.data?.length || 0) - lastMonthAppointments.data.length) / lastMonthAppointments.data.length * 100)
+      const appointmentsChange = lastMonthAppointments.length 
+        ? Math.round(((currentAppointments.length || 0) - lastMonthAppointments.length) / lastMonthAppointments.length * 100)
         : 0;
       
-      const petsChange = lastMonthPets.data?.length 
-        ? Math.round(((currentPets.data?.length || 0) - lastMonthPets.data.length) / lastMonthPets.data.length * 100)
+      const petsChange = lastMonthPets.length 
+        ? Math.round(((currentPets.length || 0) - lastMonthPets.length) / lastMonthPets.length * 100)
         : 0;
       
-      const clientsChange = lastMonthClients.data?.length 
-        ? Math.round(((currentClients.data?.length || 0) - lastMonthClients.data.length) / lastMonthClients.data.length * 100)
+      const clientsChange = lastMonthClients.length 
+        ? Math.round(((currentClients.length || 0) - lastMonthClients.length) / lastMonthClients.length * 100)
         : 0;
 
       setStats({
-        totalAppointments: currentAppointments.data?.length || 0,
-        totalPets: currentPets.data?.length || 0,
-        totalClients: currentClients.data?.length || 0,
+        totalAppointments: currentAppointments.length || 0,
+        totalPets: currentPets.length || 0,
+        totalClients: currentClients.length || 0,
         appointmentsChange,
         petsChange,
         clientsChange,
       });
 
-      // Process appointments by status
-      const statusCounts = appointmentsByStatusData.data?.reduce((acc: any, appointment: any) => {
+      // Process appointments by status using ALL appointments
+      const statusCounts = allAppointments.data?.reduce((acc: any, appointment: any) => {
         acc[appointment.status] = (acc[appointment.status] || 0) + 1;
         return acc;
       }, {}) || {};
@@ -144,8 +152,8 @@ const Dashboard = () => {
         }))
       );
 
-      // Process appointments by service
-      const serviceCounts = appointmentsByServiceData.data?.reduce((acc: any, appointment: any) => {
+      // Process appointments by service using ALL appointments
+      const serviceCounts = allAppointments.data?.reduce((acc: any, appointment: any) => {
         acc[appointment.service] = (acc[appointment.service] || 0) + 1;
         return acc;
       }, {}) || {};
