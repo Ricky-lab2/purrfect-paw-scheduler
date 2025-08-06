@@ -91,14 +91,14 @@ const Dashboard = () => {
           .gte('created_at', lastMonthStart.toISOString())
           .lte('created_at', lastMonthEnd.toISOString()),
         
-        // Additional analytics
+        // Additional analytics - get ALL appointments for charts
         supabase.from('appointments').select('status'),
         supabase.from('appointments').select('service'),
         
         // Recent activity data
-        supabase.from('appointments').select('*').order('created_at', { ascending: false }).limit(5),
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(3),
-        supabase.from('pets').select('*').order('created_at', { ascending: false }).limit(3)
+        supabase.from('appointments').select('*').order('created_at', { ascending: false }).limit(10),
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(5),
+        supabase.from('pets').select('*').order('created_at', { ascending: false }).limit(5)
       ]);
 
       // Calculate changes
