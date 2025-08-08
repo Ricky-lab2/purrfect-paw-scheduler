@@ -8,6 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  fetchAdminDashboardData, 
+  calculateDashboardStats, 
+  processAppointmentsByStatus, 
+  processAppointmentsByService, 
+  processRecentActivity 
+} from "@/utils/adminDashboardData";
 
 interface DashboardStats {
   totalAppointments: number;
@@ -56,182 +63,79 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching dashboard data...');
+      console.log('Starting dashboard data fetch...');
       
-      // Calculate date ranges
-      const now = new Date();
-      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+      // Use the new utility function
+      const result = await fetchAdminDashboardData();
+      
+      console.log('Dashboard data received:', {
+        appointmentsCount: result.appointments.length,
+        petsCount: result.pets.length,
+        profilesCount: result.profiles.length,
+        errors: {
+          appointments: result.appointmentsError,
+          pets: result.petsError,
+          profiles: result.profilesError
+        }
+      });
 
-      // Fetch ALL data first, then filter for stats
-      const [
-        allAppointments,
-        allPets,
-        allProfiles,
-        recentAppointmentsData,
-        recentProfilesData,
-        recentPetsData
-      ] = await Promise.all([
-        // Get ALL data with better error handling
-        supabase.from('appointments').select('*').order('created_at', { ascending: false }),
-        supabase.from('pets').select('*').order('created_at', { ascending: false }),
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      // If there are errors, show them but continue with available data
+      if (result.appointmentsError || result.petsError || result.profilesError) {
+        console.warn('Some data fetch errors occurred:', {
+          appointments: result.appointmentsError,
+          pets: result.petsError,
+          profiles: result.profilesError
+        });
         
-        // Recent activity data
-        supabase.from('appointments').select('*').order('created_at', { ascending: false }).limit(10),
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(5),
-        supabase.from('pets').select('*').order('created_at', { ascending: false }).limit(5)
-      ]);
-
-      console.log('Fetched data:', {
-        appointments: allAppointments.data?.length || 0,
-        pets: allPets.data?.length || 0,
-        profiles: allProfiles.data?.length || 0
-      });
-
-      // Check for errors
-      if (allAppointments.error) {
-        console.error('Appointments fetch error:', allAppointments.error);
-        throw allAppointments.error;
-      }
-      if (allPets.error) {
-        console.error('Pets fetch error:', allPets.error);
-        throw allPets.error;
-      }
-      if (allProfiles.error) {
-        console.error('Profiles fetch error:', allProfiles.error);
-        throw allProfiles.error;
+        toast({
+          title: "Partial data loaded",
+          description: "Some dashboard data couldn't be loaded. Check console for details.",
+          variant: "destructive",
+        });
       }
 
-      // Filter data by date ranges for stats
-      const currentAppointments = allAppointments.data?.filter(apt => 
-        new Date(apt.created_at) >= currentMonthStart
-      ) || [];
-      
-      const currentPets = allPets.data?.filter(pet => 
-        new Date(pet.created_at) >= currentMonthStart
-      ) || [];
-      
-      const currentClients = allProfiles.data?.filter(profile => 
-        new Date(profile.created_at) >= currentMonthStart
-      ) || [];
+      // Calculate stats using the utility function
+      const stats = calculateDashboardStats(result.appointments, result.pets, result.profiles);
+      setStats(stats);
 
-      const lastMonthAppointments = allAppointments.data?.filter(apt => {
-        const aptDate = new Date(apt.created_at);
-        return aptDate >= lastMonthStart && aptDate <= lastMonthEnd;
-      }) || [];
-      
-      const lastMonthPets = allPets.data?.filter(pet => {
-        const petDate = new Date(pet.created_at);
-        return petDate >= lastMonthStart && petDate <= lastMonthEnd;
-      }) || [];
-      
-      const lastMonthClients = allProfiles.data?.filter(profile => {
-        const profileDate = new Date(profile.created_at);
-        return profileDate >= lastMonthStart && profileDate <= lastMonthEnd;
-      }) || [];
+      // Process charts data
+      const statusData = processAppointmentsByStatus(result.appointments);
+      setAppointmentsByStatus(statusData);
 
-      // Calculate changes
-      const appointmentsChange = lastMonthAppointments.length 
-        ? Math.round(((currentAppointments.length || 0) - lastMonthAppointments.length) / lastMonthAppointments.length * 100)
-        : 0;
-      
-      const petsChange = lastMonthPets.length 
-        ? Math.round(((currentPets.length || 0) - lastMonthPets.length) / lastMonthPets.length * 100)
-        : 0;
-      
-      const clientsChange = lastMonthClients.length 
-        ? Math.round(((currentClients.length || 0) - lastMonthClients.length) / lastMonthClients.length * 100)
-        : 0;
-
-      setStats({
-        totalAppointments: currentAppointments.length || 0,
-        totalPets: currentPets.length || 0,
-        totalClients: currentClients.length || 0,
-        appointmentsChange,
-        petsChange,
-        clientsChange,
-      });
-
-      // Process appointments by status using ALL appointments
-      const statusCounts = allAppointments.data?.reduce((acc: any, appointment: any) => {
-        acc[appointment.status] = (acc[appointment.status] || 0) + 1;
-        return acc;
-      }, {}) || {};
-
-      const statusColors = {
-        scheduled: '#3b82f6',
-        completed: '#10b981',
-        cancelled: '#ef4444',
-        'in-progress': '#f59e0b'
-      };
-
-      setAppointmentsByStatus(
-        Object.entries(statusCounts).map(([status, count]) => ({
-          name: status.charAt(0).toUpperCase() + status.slice(1),
-          value: count as number,
-          color: statusColors[status as keyof typeof statusColors] || '#6b7280'
-        }))
-      );
-
-      // Process appointments by service using ALL appointments
-      const serviceCounts = allAppointments.data?.reduce((acc: any, appointment: any) => {
-        acc[appointment.service] = (acc[appointment.service] || 0) + 1;
-        return acc;
-      }, {}) || {};
-
-      setAppointmentsByService(
-        Object.entries(serviceCounts).map(([service, count]) => ({
-          service: service.charAt(0).toUpperCase() + service.slice(1),
-          count: count as number
-        }))
-      );
+      const serviceData = processAppointmentsByService(result.appointments);
+      setAppointmentsByService(serviceData);
 
       // Process recent activity
-      const activities: RecentActivity[] = [];
-      
-      recentAppointmentsData.data?.forEach(appointment => {
-        activities.push({
-          id: `apt-${appointment.id}`,
-          type: 'appointment',
-          title: 'New appointment booked',
-          description: `${appointment.owner_name} booked ${appointment.service} for ${appointment.pet_name}`,
-          timestamp: appointment.created_at
-        });
-      });
+      const activityData = processRecentActivity(result.appointments, result.profiles, result.pets);
+      setRecentActivity(activityData);
 
-      recentProfilesData.data?.forEach(profile => {
-        activities.push({
-          id: `profile-${profile.id}`,
-          type: 'registration',
-          title: 'New client registered',
-          description: `${profile.name} created a new account`,
-          timestamp: profile.created_at
-        });
+      console.log('Dashboard data processing complete:', {
+        stats,
+        statusDataLength: statusData.length,
+        serviceDataLength: serviceData.length,
+        activityDataLength: activityData.length
       });
-
-      recentPetsData.data?.forEach(pet => {
-        activities.push({
-          id: `pet-${pet.id}`,
-          type: 'pet_added',
-          title: 'Pet registered',
-          description: `New ${pet.species} named ${pet.name} was added`,
-          timestamp: pet.created_at
-        });
-      });
-
-      // Sort by timestamp and take most recent
-      activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setRecentActivity(activities.slice(0, 8));
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast({
         title: "Error loading dashboard",
-        description: "Failed to load dashboard data. Please try refreshing the page.",
+        description: `Failed to load dashboard data: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
+      
+      // Set empty data to prevent infinite loading
+      setStats({
+        totalAppointments: 0,
+        totalPets: 0,
+        totalClients: 0,
+        appointmentsChange: 0,
+        petsChange: 0,
+        clientsChange: 0,
+      });
+      setAppointmentsByStatus([]);
+      setAppointmentsByService([]);
+      setRecentActivity([]);
     } finally {
       setIsLoading(false);
     }
