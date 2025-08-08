@@ -7,6 +7,7 @@ import { Calendar, DollarSign, PawPrint, Users, TrendingUp, Activity } from "luc
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { useToast } from "@/hooks/use-toast";
 
 interface DashboardStats {
   totalAppointments: number;
@@ -37,6 +38,7 @@ interface RecentActivity {
 }
 
 const Dashboard = () => {
+  const { toast } = useToast();
   const [stats, setStats] = useState<DashboardStats>({
     totalAppointments: 0,
     totalPets: 0,
@@ -54,6 +56,7 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
+      console.log('Fetching dashboard data...');
       
       // Calculate date ranges
       const now = new Date();
@@ -70,16 +73,36 @@ const Dashboard = () => {
         recentProfilesData,
         recentPetsData
       ] = await Promise.all([
-        // Get ALL data
-        supabase.from('appointments').select('*'),
-        supabase.from('pets').select('*'),
-        supabase.from('profiles').select('*'),
+        // Get ALL data with better error handling
+        supabase.from('appointments').select('*').order('created_at', { ascending: false }),
+        supabase.from('pets').select('*').order('created_at', { ascending: false }),
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
         
         // Recent activity data
         supabase.from('appointments').select('*').order('created_at', { ascending: false }).limit(10),
         supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(5),
         supabase.from('pets').select('*').order('created_at', { ascending: false }).limit(5)
       ]);
+
+      console.log('Fetched data:', {
+        appointments: allAppointments.data?.length || 0,
+        pets: allPets.data?.length || 0,
+        profiles: allProfiles.data?.length || 0
+      });
+
+      // Check for errors
+      if (allAppointments.error) {
+        console.error('Appointments fetch error:', allAppointments.error);
+        throw allAppointments.error;
+      }
+      if (allPets.error) {
+        console.error('Pets fetch error:', allPets.error);
+        throw allPets.error;
+      }
+      if (allProfiles.error) {
+        console.error('Profiles fetch error:', allProfiles.error);
+        throw allProfiles.error;
+      }
 
       // Filter data by date ranges for stats
       const currentAppointments = allAppointments.data?.filter(apt => 
@@ -204,6 +227,11 @@ const Dashboard = () => {
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      toast({
+        title: "Error loading dashboard",
+        description: "Failed to load dashboard data. Please try refreshing the page.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -211,6 +239,63 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Set up real-time subscription for appointments
+    const appointmentsChannel = supabase
+      .channel('appointments_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments'
+        },
+        (payload) => {
+          console.log('Real-time appointment change:', payload);
+          fetchDashboardData(); // Refresh data when appointments change
+        }
+      )
+      .subscribe();
+
+    // Set up real-time subscription for pets
+    const petsChannel = supabase
+      .channel('pets_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pets'
+        },
+        (payload) => {
+          console.log('Real-time pets change:', payload);
+          fetchDashboardData(); // Refresh data when pets change
+        }
+      )
+      .subscribe();
+
+    // Set up real-time subscription for profiles
+    const profilesChannel = supabase
+      .channel('profiles_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        (payload) => {
+          console.log('Real-time profiles change:', payload);
+          fetchDashboardData(); // Refresh data when profiles change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(appointmentsChannel);
+      supabase.removeChannel(petsChannel);
+      supabase.removeChannel(profilesChannel);
+    };
   }, [timeRange]);
 
   const statCards = [
