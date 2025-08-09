@@ -8,13 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  fetchAdminDashboardData, 
-  calculateDashboardStats, 
-  processAppointmentsByStatus, 
-  processAppointmentsByService, 
-  processRecentActivity 
-} from "@/utils/adminDashboardData";
 
 interface DashboardStats {
   totalAppointments: number;
@@ -63,79 +56,67 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      console.log('Starting dashboard data fetch...');
       
-      // Use the new utility function
-      const result = await fetchAdminDashboardData();
+      // Hardcoded data - simple static values for testing
+      const hardcodedStats = {
+        totalAppointments: 125,
+        totalPets: 89,
+        totalClients: 67,
+        appointmentsChange: 12,
+        petsChange: 8,
+        clientsChange: 15,
+      };
       
-      console.log('Dashboard data received:', {
-        appointmentsCount: result.appointments.length,
-        petsCount: result.pets.length,
-        profilesCount: result.profiles.length,
-        errors: {
-          appointments: result.appointmentsError,
-          pets: result.petsError,
-          profiles: result.profilesError
+      const hardcodedStatusData = [
+        { name: "Scheduled", value: 45, color: "#3b82f6" },
+        { name: "Completed", value: 65, color: "#10b981" },
+        { name: "Cancelled", value: 15, color: "#ef4444" }
+      ];
+      
+      const hardcodedServiceData = [
+        { service: "Vaccination", count: 35 },
+        { service: "Check-up", count: 28 },
+        { service: "Surgery", count: 18 },
+        { service: "Dental", count: 22 },
+        { service: "Emergency", count: 12 }
+      ];
+      
+      const hardcodedActivity = [
+        {
+          id: "1",
+          type: "appointment" as const,
+          title: "New appointment scheduled",
+          description: "Vaccination appointment for Max",
+          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString()
+        },
+        {
+          id: "2", 
+          type: "registration" as const,
+          title: "New client registered",
+          description: "Sarah Johnson joined the clinic",
+          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString()
+        },
+        {
+          id: "3",
+          type: "pet_added" as const,
+          title: "New pet registered",
+          description: "Luna (Cat) added to the system",
+          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString()
         }
-      });
-
-      // If there are errors, show them but continue with available data
-      if (result.appointmentsError || result.petsError || result.profilesError) {
-        console.warn('Some data fetch errors occurred:', {
-          appointments: result.appointmentsError,
-          pets: result.petsError,
-          profiles: result.profilesError
-        });
-        
-        toast({
-          title: "Partial data loaded",
-          description: "Some dashboard data couldn't be loaded. Check console for details.",
-          variant: "destructive",
-        });
-      }
-
-      // Calculate stats using the utility function
-      const stats = calculateDashboardStats(result.appointments, result.pets, result.profiles);
-      setStats(stats);
-
-      // Process charts data
-      const statusData = processAppointmentsByStatus(result.appointments);
-      setAppointmentsByStatus(statusData);
-
-      const serviceData = processAppointmentsByService(result.appointments);
-      setAppointmentsByService(serviceData);
-
-      // Process recent activity
-      const activityData = processRecentActivity(result.appointments, result.profiles, result.pets);
-      setRecentActivity(activityData);
-
-      console.log('Dashboard data processing complete:', {
-        stats,
-        statusDataLength: statusData.length,
-        serviceDataLength: serviceData.length,
-        activityDataLength: activityData.length
-      });
-
+      ];
+      
+      setStats(hardcodedStats);
+      setAppointmentsByStatus(hardcodedStatusData);
+      setAppointmentsByService(hardcodedServiceData);
+      setRecentActivity(hardcodedActivity);
+      
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('Error setting dashboard data:', error);
       toast({
         title: "Error loading dashboard",
-        description: `Failed to load dashboard data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        description: "Failed to load dashboard data",
         variant: "destructive",
       });
-      
-      // Set empty data to prevent infinite loading
-      setStats({
-        totalAppointments: 0,
-        totalPets: 0,
-        totalClients: 0,
-        appointmentsChange: 0,
-        petsChange: 0,
-        clientsChange: 0,
-      });
-      setAppointmentsByStatus([]);
-      setAppointmentsByService([]);
-      setRecentActivity([]);
     } finally {
       setIsLoading(false);
     }
