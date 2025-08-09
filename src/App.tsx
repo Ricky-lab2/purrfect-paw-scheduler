@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from
 import { lazy, Suspense, useEffect, memo } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { FloatingChatbot } from "@/components/FloatingChatbot";
+
 import { NotificationPreview } from "@/components/NotificationPreview";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -159,7 +159,7 @@ const App = () => (
                   </Suspense>
                 </main>
                 <Footer />
-                <FloatingChatbot />
+                
                 <NotificationWrapper />
               </div>
             </BrowserRouter>
