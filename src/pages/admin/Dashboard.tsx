@@ -57,7 +57,93 @@ const Dashboard = () => {
     try {
       setIsLoading(true);
       
-      // Hardcoded data - simple static values for testing
+      // Fetch real data from database
+      const [
+        { data: appointments, error: appointmentsError },
+        { data: pets, error: petsError },
+        { data: profiles, error: profilesError }
+      ] = await Promise.all([
+        supabase.from('appointments').select('*'),
+        supabase.from('pets').select('*'),
+        supabase.from('profiles').select('*')
+      ]);
+
+      if (appointmentsError) {
+        console.error('Error fetching appointments:', appointmentsError);
+        throw appointmentsError;
+      }
+      if (petsError) {
+        console.error('Error fetching pets:', petsError);
+        throw petsError;
+      }
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      // Calculate stats from real data
+      const realStats = {
+        totalAppointments: appointments?.length || 0,
+        totalPets: pets?.length || 0,
+        totalClients: profiles?.filter(profile => profile.role === 'customer').length || 0,
+        appointmentsChange: 12, // This would need historical data calculation
+        petsChange: 8,
+        clientsChange: 15,
+      };
+
+      // Process appointments by status
+      const statusCounts = appointments?.reduce((acc: Record<string, number>, appointment) => {
+        acc[appointment.status] = (acc[appointment.status] || 0) + 1;
+        return acc;
+      }, {}) || {};
+
+      const statusData = [
+        { name: "Scheduled", value: statusCounts.scheduled || 0, color: "#3b82f6" },
+        { name: "Completed", value: statusCounts.completed || 0, color: "#10b981" },
+        { name: "Cancelled", value: statusCounts.cancelled || 0, color: "#ef4444" }
+      ];
+
+      // Process appointments by service
+      const serviceCounts = appointments?.reduce((acc: Record<string, number>, appointment) => {
+        acc[appointment.service] = (acc[appointment.service] || 0) + 1;
+        return acc;
+      }, {}) || {};
+
+      const serviceData = Object.entries(serviceCounts).map(([service, count]) => ({
+        service,
+        count: count as number
+      }));
+
+      // Generate recent activity from actual data
+      const recentAppointments = appointments?.slice(0, 2).map(appointment => ({
+        id: appointment.id,
+        type: "appointment" as const,
+        title: "New appointment scheduled",
+        description: `${appointment.service} appointment for ${appointment.pet_name}`,
+        timestamp: appointment.created_at
+      })) || [];
+
+      const recentProfiles = profiles?.slice(0, 1).map(profile => ({
+        id: profile.id,
+        type: "registration" as const,
+        title: "New client registered",
+        description: `${profile.name} joined the clinic`,
+        timestamp: profile.created_at
+      })) || [];
+
+      const activity = [...recentAppointments, ...recentProfiles]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 5);
+
+      setStats(realStats);
+      setAppointmentsByStatus(statusData);
+      setAppointmentsByService(serviceData);
+      setRecentActivity(activity);
+      
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      
+      // Fallback to hardcoded data on error
       const hardcodedStats = {
         totalAppointments: 125,
         totalPets: 89,
@@ -88,20 +174,6 @@ const Dashboard = () => {
           title: "New appointment scheduled",
           description: "Vaccination appointment for Max",
           timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString()
-        },
-        {
-          id: "2", 
-          type: "registration" as const,
-          title: "New client registered",
-          description: "Sarah Johnson joined the clinic",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString()
-        },
-        {
-          id: "3",
-          type: "pet_added" as const,
-          title: "New pet registered",
-          description: "Luna (Cat) added to the system",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString()
         }
       ];
       
@@ -110,11 +182,9 @@ const Dashboard = () => {
       setAppointmentsByService(hardcodedServiceData);
       setRecentActivity(hardcodedActivity);
       
-    } catch (error) {
-      console.error('Error setting dashboard data:', error);
       toast({
         title: "Error loading dashboard",
-        description: "Failed to load dashboard data",
+        description: "Using fallback data due to database error",
         variant: "destructive",
       });
     } finally {

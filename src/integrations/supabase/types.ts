@@ -14,6 +14,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      admins: {
+        Row: {
+          user_id: string
+        }
+        Insert: {
+          user_id: string
+        }
+        Update: {
+          user_id?: string
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           appointment_date: string
@@ -93,12 +105,6 @@ export type Database = {
           updated_at?: string
           weight?: string | null
         }
-        Relationships: []
-      }
-      Profile: {
-        Row: {}
-        Insert: {}
-        Update: {}
         Relationships: []
       }
       profiles: {
