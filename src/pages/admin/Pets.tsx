@@ -1,67 +1,99 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MoreHorizontal, PawPrint, Search } from "lucide-react";
-import { useState } from "react";
+import { MoreHorizontal, PawPrint, Search, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-// Sample data
-const petsData = [
-  {
-    id: "PET001",
-    name: "Max",
-    species: "Dog",
-    breed: "Golden Retriever",
-    age: "3 years",
-    ownerName: "John Doe",
-    lastVisit: "2025-04-01",
-  },
-  {
-    id: "PET002",
-    name: "Luna",
-    species: "Cat",
-    breed: "Persian",
-    age: "2 years",
-    ownerName: "Sarah Johnson",
-    lastVisit: "2025-03-28",
-  },
-  {
-    id: "PET003",
-    name: "Bella",
-    species: "Dog",
-    breed: "Poodle",
-    age: "4 years",
-    ownerName: "Michael Smith",
-    lastVisit: "2025-03-25",
-  },
-  {
-    id: "PET004",
-    name: "Charlie",
-    species: "Dog",
-    breed: "Beagle",
-    age: "1 year",
-    ownerName: "Jessica Williams",
-    lastVisit: "2025-04-02",
-  },
-  {
-    id: "PET005",
-    name: "Oliver",
-    species: "Cat",
-    breed: "Maine Coon",
-    age: "5 years",
-    ownerName: "David Brown",
-    lastVisit: "2025-03-30",
-  },
-];
+interface Pet {
+  id: string;
+  name: string;
+  species: string;
+  breed?: string;
+  type: string;
+  weight?: string;
+  birth_date: string;
+  gender: string;
+  owner_id: string;
+  created_at: string;
+}
+
+interface Profile {
+  name: string;
+}
 
 const Pets = () => {
+  const { toast } = useToast();
+  const [pets, setPets] = useState<(Pet & { ownerName: string })[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSpecies, setFilterSpecies] = useState("All");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredPets = petsData.filter(pet => {
+  useEffect(() => {
+    loadPets();
+  }, []);
+
+  const loadPets = async () => {
+    setIsLoading(true);
+    try {
+      // First get pets
+      const { data: petsData, error: petsError } = await supabase
+        .from('pets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (petsError) throw petsError;
+
+      // Then get profiles to match with owner names
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name');
+
+      if (profilesError) throw profilesError;
+
+      // Map pets with owner names
+      const petsWithOwnerNames = petsData?.map(pet => {
+        const ownerProfile = profilesData?.find(profile => profile.id === pet.owner_id);
+        return {
+          ...pet,
+          ownerName: ownerProfile?.name || 'Unknown Owner'
+        };
+      }) || [];
+      
+      setPets(petsWithOwnerNames);
+    } catch (error) {
+      console.error("Error loading pets:", error);
+      toast({
+        title: "Error",
+        description: "Could not load pets.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const calculateAge = (birthDate: string) => {
+    const birth = new Date(birthDate);
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - birth.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const years = Math.floor(diffDays / 365);
+    const months = Math.floor((diffDays % 365) / 30);
+    
+    if (years > 0) {
+      return `${years} year${years > 1 ? 's' : ''}`;
+    } else {
+      return `${months} month${months > 1 ? 's' : ''}`;
+    }
+  };
+
+  const filteredPets = pets.filter(pet => {
     // Filter by search term
     const searchMatch = 
       pet.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       pet.ownerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pet.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pet.breed?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pet.id.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Filter by species
@@ -121,23 +153,33 @@ const Pets = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredPets.map((pet) => (
-              <TableRow key={pet.id}>
-                <TableCell className="font-medium">{pet.id}</TableCell>
-                <TableCell>{pet.name}</TableCell>
-                <TableCell>{pet.species}</TableCell>
-                <TableCell>{pet.breed}</TableCell>
-                <TableCell>{pet.age}</TableCell>
-                <TableCell>{pet.ownerName}</TableCell>
-                <TableCell>{pet.lastVisit}</TableCell>
-                <TableCell>
-                  <button className="p-1 rounded-full hover:bg-gray-100">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </button>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-8">
+                  <div className="flex justify-center items-center">
+                    <Clock className="animate-spin h-4 w-4 mr-2" />
+                    Loading pets...
+                  </div>
                 </TableCell>
               </TableRow>
-            ))}
-            {filteredPets.length === 0 && (
+            ) : filteredPets.length > 0 ? (
+              filteredPets.map((pet) => (
+                <TableRow key={pet.id}>
+                  <TableCell className="font-medium">{pet.id.slice(0, 8)}...</TableCell>
+                  <TableCell>{pet.name}</TableCell>
+                  <TableCell>{pet.species}</TableCell>
+                  <TableCell>{pet.breed || 'Mixed'}</TableCell>
+                  <TableCell>{calculateAge(pet.birth_date)}</TableCell>
+                  <TableCell>{pet.ownerName}</TableCell>
+                  <TableCell>{new Date(pet.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <button className="p-1 rounded-full hover:bg-gray-100">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No pets found

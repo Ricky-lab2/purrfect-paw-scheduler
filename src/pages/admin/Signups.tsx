@@ -1,32 +1,60 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar } from "lucide-react";
+import { Search, Calendar, Clock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface Profile {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  created_at: string;
+}
 
 const SignupsPage = () => {
+  const { toast } = useToast();
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Get registered users from localStorage
-  const getRegisteredUsers = () => {
-    return JSON.parse(localStorage.getItem("registeredUsers") || "[]").map((user: any) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      date: new Date().toISOString().split('T')[0], // In a real app, would store signup date
-    }));
+  useEffect(() => {
+    loadProfiles();
+  }, []);
+
+  const loadProfiles = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'customer')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProfiles(data || []);
+    } catch (error) {
+      console.error("Error loading profiles:", error);
+      toast({
+        title: "Error",
+        description: "Could not load user signups.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const registeredUsers = getRegisteredUsers();
-
   // Filter users based on search term and date
-  const filteredUsers = registeredUsers.filter(user => {
+  const filteredUsers = profiles.filter(user => {
     const matchesSearch = 
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
       
-    const matchesDate = dateFilter === "" || user.date === dateFilter;
+    const matchesDate = dateFilter === "" || user.created_at.split('T')[0] === dateFilter;
     
     return matchesSearch && matchesDate;
   });
@@ -72,15 +100,25 @@ const SignupsPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.id}</TableCell>
-                <TableCell>{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{user.date}</TableCell>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8">
+                  <div className="flex justify-center items-center">
+                    <Clock className="animate-spin h-4 w-4 mr-2" />
+                    Loading signups...
+                  </div>
+                </TableCell>
               </TableRow>
-            ))}
-            {filteredUsers.length === 0 && (
+            ) : filteredUsers.length > 0 ? (
+              filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.id.slice(0, 8)}...</TableCell>
+                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                </TableRow>
+              ))
+            ) : (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                   No sign ups found

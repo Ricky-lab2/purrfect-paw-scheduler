@@ -2,7 +2,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar, MoreHorizontal, Search, Plus, Trash2, Check, X, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Appointment, getAppointments, updateAppointmentStatus, deleteAppointment, seedInitialData } from "@/utils/localStorageDB";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 
+interface Appointment {
+  id: string;
+  pet_name: string;
+  owner_name: string;
+  service: string;
+  appointment_date: string;
+  time_slot: string;
+  status: string;
+  owner_id: string;
+}
+
 const Appointments = () => {
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -22,16 +33,19 @@ const Appointments = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Seed initial data if none exists and load appointments
-    seedInitialData();
     loadAppointments();
   }, []);
 
-  const loadAppointments = () => {
+  const loadAppointments = async () => {
     setIsLoading(true);
     try {
-      const data = getAppointments();
-      setAppointments(data);
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAppointments(data || []);
     } catch (error) {
       console.error("Error loading appointments:", error);
       toast({
@@ -44,24 +58,50 @@ const Appointments = () => {
     }
   };
 
-  const handleStatusUpdate = (id: string, status: Appointment['status']) => {
-    const success = updateAppointmentStatus(id, status);
-    if (success) {
+  const handleStatusUpdate = async (id: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status })
+        .eq('id', id);
+
+      if (error) throw error;
+      
       loadAppointments();
       toast({
         title: "Status Updated",
         description: `Appointment status changed to ${status}`,
       });
+    } catch (error) {
+      console.error("Error updating appointment:", error);
+      toast({
+        title: "Error",
+        description: "Could not update appointment status.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleDelete = (id: string) => {
-    const success = deleteAppointment(id);
-    if (success) {
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
       loadAppointments();
       toast({
         title: "Appointment Deleted",
         description: "The appointment has been removed.",
+      });
+    } catch (error) {
+      console.error("Error deleting appointment:", error);
+      toast({
+        title: "Error",
+        description: "Could not delete appointment.",
+        variant: "destructive",
       });
     }
   };
@@ -69,8 +109,8 @@ const Appointments = () => {
   const filteredAppointments = appointments.filter(appointment => {
     // Filter by search term
     const searchMatch = 
-      appointment.petName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      appointment.ownerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      appointment.pet_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      appointment.owner_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       appointment.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
       appointment.id.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -85,10 +125,10 @@ const Appointments = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Confirmed": return "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300";
-      case "Completed": return "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300";
-      case "Pending": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300";
-      case "Cancelled": return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300";
+      case "confirmed": return "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300";
+      case "completed": return "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300";
+      case "scheduled": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300";
+      case "cancelled": return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300";
       default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
     }
   };
@@ -121,10 +161,10 @@ const Appointments = () => {
           onChange={(e) => setFilterStatus(e.target.value)}
         >
           <option value="All">All Status</option>
-          <option value="Pending">Pending</option>
-          <option value="Confirmed">Confirmed</option>
-          <option value="Completed">Completed</option>
-          <option value="Cancelled">Cancelled</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
         </select>
         <select 
           className="px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white"
@@ -168,12 +208,12 @@ const Appointments = () => {
             ) : filteredAppointments.length > 0 ? (
               filteredAppointments.map((appointment) => (
                 <TableRow key={appointment.id}>
-                  <TableCell className="font-medium">{appointment.id}</TableCell>
-                  <TableCell>{appointment.petName}</TableCell>
-                  <TableCell>{appointment.ownerName}</TableCell>
+                  <TableCell className="font-medium">{appointment.id.slice(0, 8)}...</TableCell>
+                  <TableCell>{appointment.pet_name}</TableCell>
+                  <TableCell>{appointment.owner_name}</TableCell>
                   <TableCell className="capitalize">{appointment.service}</TableCell>
-                  <TableCell>{new Date(appointment.date).toLocaleDateString()}</TableCell>
-                  <TableCell>{appointment.time}</TableCell>
+                  <TableCell>{new Date(appointment.appointment_date).toLocaleDateString()}</TableCell>
+                  <TableCell>{appointment.time_slot}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
                       {appointment.status}
@@ -188,21 +228,21 @@ const Appointments = () => {
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                          onClick={() => handleStatusUpdate(appointment.id, "Confirmed")}
+                          onClick={() => handleStatusUpdate(appointment.id, "confirmed")}
                           className="flex items-center gap-2"
                         >
                           <Check className="h-4 w-4" />
                           <span>Confirm</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => handleStatusUpdate(appointment.id, "Completed")}
+                          onClick={() => handleStatusUpdate(appointment.id, "completed")}
                           className="flex items-center gap-2"
                         >
                           <Check className="h-4 w-4" />
                           <span>Mark as Completed</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => handleStatusUpdate(appointment.id, "Cancelled")}
+                          onClick={() => handleStatusUpdate(appointment.id, "cancelled")}
                           className="flex items-center gap-2"
                         >
                           <X className="h-4 w-4" />
