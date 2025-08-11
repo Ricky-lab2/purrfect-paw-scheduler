@@ -105,6 +105,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             name: name,
             role: 'customer',
